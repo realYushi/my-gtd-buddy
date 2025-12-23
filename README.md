@@ -1,6 +1,6 @@
 # My GTD Buddy
 
-A Things-native Getting Things Done (GTD) workflow optimized for daily productivity. This project implements a streamlined GTD system that leverages Things' built-in strengths with intelligent AI agents to automate workflow managementhttps://github.com/realYushi/my-gtd-buddy.
+A Things-native Getting Things Done (GTD) workflow optimized for daily productivity. This project implements a streamlined GTD system that leverages Things' built-in strengths with intelligent AI agents to automate workflow management https://github.com/realYushi/my-gtd-buddy.
 
 ## 📑 Table of Contents
 
