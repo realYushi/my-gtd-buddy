@@ -1,82 +1,72 @@
 # My GTD Buddy
 
-A Things-native Getting Things Done (GTD) workflow optimized for daily productivity. This project implements a streamlined GTD system that leverages Things' built-in strengths with intelligent AI agents to automate workflow management https://github.com/realYushi/my-gtd-buddy.
+A Things-native Getting Things Done (GTD) workflow powered by Claude Code. This project implements a streamlined GTD system that leverages Things' built-in strengths with an intelligent AI skill to orchestrate workflow management.
 
-## 📑 Table of Contents
+## Table of Contents
 
--   [Overview](#-overview)
--   [Key Features](#-key-features)
--   [Intelligent Agents](#-intelligent-agents)
--   [Technology Stack](#-technology-stack)
--   [System Architecture](#️-system-architecture)
--   [GTD Workflow](#-gtd-workflow)
--   [Project Structure](#-project-structure)
--   [Requirements](#-requirements)
--   [Important Warning](#️-important-warning)
--   [Setup Guide](#️-setup-guide)
--   [How to Use](#-how-to-use)
--   [Daily Workflow](#-daily-workflow)
--   [Customization](#-customization)
--   [Privacy Note](#-privacy-note)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Technology Stack](#technology-stack)
+- [System Architecture](#system-architecture)
+- [GTD Workflow](#gtd-workflow)
+- [Project Structure](#project-structure)
+- [Requirements](#requirements)
+- [Important Warning](#important-warning)
+- [Setup Guide](#setup-guide)
+- [How to Use](#how-to-use)
+- [Daily Workflow](#daily-workflow)
+- [Customization](#customization)
+- [Privacy Note](#privacy-note)
 
-## 🎯 Overview
+## Overview
 
-This is my personal implementation of David Allen's GTD methodology, specifically designed around the Things app with intelligent agents to automate workflow management. **While I use Things 3, you can adapt this system to work with any todo list app** by replacing the MCP server and updating the agent instructions.
+This is my personal implementation of David Allen's GTD methodology, designed around the Things app with an intelligent Claude Code skill to orchestrate workflows. **While I use Things 3, you can adapt this system to work with any todo list app** by replacing the MCP server and updating the skill instructions.
 
 The system focuses on:
 
--   **Instant capture** - Everything goes to Things Inbox first (Ctrl+Space)
--   **Daily planning** - Inbox to zero using Things native Today/Upcoming/Anytime/Someday
--   **Focused execution** - Today/Anytime focus with Quick Find context switching
--   **Weekly reviews** - Areas/Projects maintenance for sustainable productivity
+- **Instant capture** — Everything goes to Things Inbox first
+- **Daily planning** — Inbox to zero with interactive processing
+- **Focused execution** — Context-aware task selection
+- **Continuous review** — AI-driven micro-reviews, not heavy scheduled sessions
+- **Proactive surfacing** — AI surfaces relevant info without being asked
 
-> **📖 See It In Action**: Want to see how this actually works? Check out [A Day with My GTD System.md](A%20Day%20with%20My%20GTD%20System.md) - a complete walkthrough from 6 AM wake-up to 10 PM completion, showing how the system handles real interruptions, context switching, and maintains focus throughout a typical day!
+> **See It In Action**: Check out [A Day with My GTD System.md](A%20Day%20with%20My%20GTD%20System.md) — a complete walkthrough from morning to night showing how the system handles real interruptions, context switching, and maintains focus.
 
-## 🎪 Key Features
+## Key Features
 
--   **Things-native scheduling** - Leverages Today/Upcoming/Anytime/Someday naturally
--   **Calendar integration** - Seamless appointment + task coordination
--   **Minimal tagging** - Only tag what you actually search for
--   **Energy-based execution** - Match tasks to current energy levels
--   **Instant capture** - Never lose ideas with Ctrl+Space integration
--   **AI-powered workflow** - Intelligent agents guide each GTD phase
+- **Things-native scheduling** — Leverages Today/Upcoming/Anytime/Someday naturally
+- **Calendar integration** — macOS Calendar for appointment + task coordination
+- **Context tags** — Location (@home, @office) and energy (#high, #low, #quick) filtering
+- **Proactive AI** — Surfaces deadlines, stale tasks, and suggestions automatically
+- **Terse communication** — "Captured: [item]" not "I've successfully added..."
+- **Continuous micro-reviews** — Surface issues as detected, not on schedule
 
-## 🤖 Intelligent Agents
+## Technology Stack
 
-Built with [opencode](https://opencode.ai) using a unified GTD Master Agent that orchestrates specialized workflow components:
+- **[Claude Code](https://claude.ai/code)** — AI-powered CLI with Skills support
+- **[things-mcp](https://github.com/cowboy/things-mcp)** — Direct integration with Things app
+- **[macos-calendar-mcp](https://github.com/aiguofer/macos-calendar-mcp)** — macOS Calendar integration
 
--   **GTD Master Agent** - Unified orchestrator with intelligent routing and automation framework
--   **Daily Planning Agent** - Interactive inbox processing with guided decision-making
--   **Execution Agent** - Context-aware task selection and execution guidance  
--   **Review Phase Agent** - Strategic system maintenance through guided reviews
-
-The system uses **natural language processing** with automatic delegation to specialized workflow phases. No mode switching required - just describe what you want to accomplish and the system routes to the appropriate workflow automation.
-
-## 🔧 Technology Stack
-
--   **[opencode](https://opencode.ai)** - AI-powered development environment
--   **[Things3-MCP](https://github.com/rossshannon/Things3-MCP)** - Direct integration with Things app
--   **[Google Calendar MCP](https://github.com/nspady/google-calendar-mcp)** - Calendar synchronization
--   **Multiple AI Models** - Gemini 2.0 Flash, Gemini 2.5 Pro
-
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TB
-    subgraph "opencode AI Environment"
-        GTD[GTD Master Agent<br/>Unified Orchestrator]
-        PLAN[Daily Planning<br/>Interactive Processing]
+    subgraph "Claude Code"
+        SKILL[GTD Skill<br/>Workflow Orchestrator]
+        PLAN[Daily Planning<br/>Inbox Processing]
         EXEC[Execution<br/>Context-Aware Selection]
-        REV[Review Phase<br/>Strategic Maintenance]
+        REV[Continuous Review<br/>Micro-Reviews]
+        PRO[Proactive<br/>AI-Initiated Suggestions]
 
-        GTD --> PLAN
-        GTD --> EXEC
-        GTD --> REV
+        SKILL --> PLAN
+        SKILL --> EXEC
+        SKILL --> REV
+        SKILL --> PRO
     end
 
     subgraph "MCP Layer"
-        TMCP[Things MCP]
-        GCMCP[Google Calendar MCP]
+        TMCP[things-mcp]
+        CMCP[macos-calendar-mcp]
     end
 
     subgraph "Things App"
@@ -86,39 +76,35 @@ graph TB
         ANYTIME[Anytime]
         SOMEDAY[Someday]
         PROJECTS[Projects]
-        AREAS[Areas]
     end
 
-    subgraph "Google Calendar"
-        APPT[Appointments]
-        DEAD[Deadlines]
-        BLOCKS[Time Blocks]
+    subgraph "macOS Calendar"
+        EVENTS[Events]
+        DEADLINES[Deadlines]
     end
 
-    GTD --> TMCP
-    GTD --> GCMCP
+    SKILL --> TMCP
+    SKILL --> CMCP
     TMCP --> INBOX
     TMCP --> TODAY
     TMCP --> UPCOMING
     TMCP --> ANYTIME
     TMCP --> SOMEDAY
     TMCP --> PROJECTS
-    TMCP --> AREAS
-    GCMCP --> APPT
-    GCMCP --> DEAD
-    GCMCP --> BLOCKS
+    CMCP --> EVENTS
+    CMCP --> DEADLINES
 ```
 
-## 🔄 GTD Workflow
+## GTD Workflow
 
 ### Workflow Phases
 
 ```mermaid
 graph LR
-    CAPTURE[🎯 CAPTURE<br/>5 seconds<br/>Ctrl+Space → Inbox]
-    PLANNING[📋 PLANNING<br/>10 minutes<br/>Inbox → 0<br/>Energy Match]
-    EXECUTION[⚡ EXECUTION<br/>Throughout Day<br/>Today List<br/>Quick Find]
-    REVIEW[🔍 REVIEW<br/>20 min/week<br/>Areas & Projects<br/>System Health]
+    CAPTURE[CAPTURE<br/>Instant<br/>→ Inbox]
+    PLANNING[PLANNING<br/>10 min<br/>Inbox → 0]
+    EXECUTION[EXECUTION<br/>All Day<br/>Context-Aware]
+    REVIEW[REVIEW<br/>Continuous<br/>Micro-Reviews]
 
     CAPTURE --> PLANNING
     PLANNING --> EXECUTION
@@ -140,362 +126,273 @@ graph LR
 
 ```mermaid
 flowchart TD
-    START[💭 Idea/Task] --> INBOX[📥 INBOX<br/>Ctrl+Space]
-    INBOX --> DECISION{🤔 Processing<br/>Decision}
+    START[Idea/Task] --> INBOX[INBOX]
+    INBOX --> DECISION{Processing}
 
-    DECISION -->|Important & Urgent| TODAY[📅 TODAY<br/>Commit to start today]
-    DECISION -->|Scheduled/Deadline| UPCOMING[⏰ UPCOMING<br/>Future planned]
-    DECISION -->|Ready when needed| ANYTIME[🔄 ANYTIME<br/>Available to start]
-    DECISION -->|Maybe someday| SOMEDAY[💭 SOMEDAY<br/>Future consideration]
+    DECISION -->|Important & Urgent| TODAY[TODAY<br/>Commit to start today]
+    DECISION -->|Scheduled/Deadline| UPCOMING[UPCOMING<br/>Future planned]
+    DECISION -->|Ready when needed| ANYTIME[ANYTIME<br/>Available to start]
+    DECISION -->|Maybe someday| SOMEDAY[SOMEDAY<br/>Future consideration]
 
-    TODAY --> EXECUTE[✅ EXECUTE<br/>Get it done]
-    UPCOMING --> CALENDAR[📆 Calendar View<br/>Timeline context]
-    ANYTIME --> CONTEXT[🎯 Context Switch<br/>Energy/Time match]
-    SOMEDAY --> REVIEW_CYCLE[🔍 Weekly Review<br/>Reconsider priority]
+    TODAY --> EXECUTE[EXECUTE]
+    UPCOMING --> CALENDAR[Calendar View]
+    ANYTIME --> CONTEXT[Context Switch]
+    SOMEDAY --> REVIEW_CYCLE[Micro-Review]
 
     REVIEW_CYCLE --> ANYTIME
     CONTEXT --> EXECUTE
     CALENDAR --> TODAY
-
-    classDef inbox fill:#ffeb3b,color:#000
-    classDef today fill:#4caf50,color:#fff
-    classDef upcoming fill:#2196f3,color:#fff
-    classDef anytime fill:#ff9800,color:#fff
-    classDef someday fill:#9e9e9e,color:#fff
-    classDef action fill:#e91e63,color:#fff
-
-    class INBOX inbox
-    class TODAY today
-    class UPCOMING upcoming
-    class ANYTIME anytime
-    class SOMEDAY someday
-    class EXECUTE,CALENDAR,CONTEXT,REVIEW_CYCLE action
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-.opencode/
-├── agent/                # Specialized workflow components
-│   ├── daily-planning.md # Interactive inbox processing
-│   ├── execution.md      # Context-aware task selection
-│   └── review-phase.md   # Strategic system maintenance
-└── prompts/
-    └── gtd-master.md     # Unified orchestrator and automation framework
+.claude/
+└── skills/
+    └── gtd/
+        ├── SKILL.md              # Main orchestrator (64 lines)
+        ├── reference/
+        │   ├── tools.md          # MCP tool reference
+        │   ├── tags.md           # Tag system and setup
+        │   └── fallbacks.md      # URL schemes for MCP failures
+        └── workflows/
+            ├── daily-planning.md # Interactive inbox processing
+            ├── execution.md      # Context-aware task selection
+            ├── review.md         # Continuous micro-reviews
+            └── proactive.md      # AI-initiated suggestions
 
-A Day with My GTD System.md   # Real workflow example
-opencode.json               # Single GTD mode configuration
+.mcp.json                         # MCP server configuration
+A Day with My GTD System.md       # Real workflow example
 ```
 
-## 📋 Requirements
+## Requirements
 
--   **Things 3** (macOS/iOS) - _Or any todo list app with MCP integration_
--   **Google Calendar** access
--   **opencode** development environment
--   **MCP servers** for your chosen todo app and Google Calendar integration
+- **Things 3** (macOS) — Or any todo list app with MCP integration
+- **macOS Calendar** — For calendar integration
+- **Claude Code** — AI-powered CLI
+- **MCP servers** — things-mcp and macos-calendar-mcp
 
-> **💡 Using a Different Todo App?**  
-> This system is built for Things 3, but you can adapt it to work with any todo list app:
->
-> 1. Replace the Things MCP server with one for your preferred app (Todoist, Notion, etc.)
-> 2. Update the agent instructions in `.opencode/agent/` files to match your app's terminology and workflow
-> 3. Modify the `opencode.json` configuration to use your new MCP server
->
-> The core GTD principles and agent workflow remain the same!
+> **Using a Different Todo App?**
+> Replace the Things MCP server with one for your preferred app (Todoist, Notion, etc.) and update the skill instructions to match your app's terminology.
 
-## ⚠️ Important Warning
+## Important Warning
 
-**AI systems can make mistakes!** This system has direct access to your Tasks and Calendar data. The AI agents may:
+**AI systems can make mistakes!** This system has direct access to your Tasks and Calendar data. The AI may:
 
--   Accidentally delete or modify tasks
--   Move tasks to wrong lists or dates
--   Create duplicate entries
--   Mess up calendar events or scheduling
+- Accidentally delete or modify tasks
+- Move tasks to wrong lists or dates
+- Create duplicate entries
+- Mess up calendar events
 
 **Recommendations:**
 
--   **Test with non-critical data first** - Use a separate Things database or test calendar
--   **Start slowly** - Begin with read-only commands before letting AI modify your data
--   **Backup regularly** - Export your Things data and sync calendar to multiple accounts
--   **Review AI actions** - Always verify what the AI did, especially for important tasks
--   **Use at your own risk** - This is experimental software for personal use
+- **Test with non-critical data first**
+- **Start slowly** — Begin with read-only commands
+- **Backup regularly** — Export your Things data
+- **Review AI actions** — Always verify, especially for important tasks
 
-**For beginners:** Consider starting in "read-only" mode by disabling write permissions in the agent configurations until you're comfortable with the system's behavior.
-
-## ⚙️ Setup Guide
+## Setup Guide
 
 ### 1. Install Prerequisites
 
 ```bash
-# Install opencode
-npm install -g @opencode/cli
+# Install Claude Code
+npm install -g @anthropic-ai/claude-code
 
-# Install required MCP servers
-npm install -g @cocal/google-calendar-mcp
+# Install uv (Python package manager) if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Clone Things3-MCP server
-git clone https://github.com/rossshannon/Things3-MCP.git
-cd Things3-MCP
-uv sync  # Install dependencies
+# Install Node.js if not already installed (for calendar MCP)
+# https://nodejs.org/
 ```
 
-### 2. Configure Things3-MCP
+### 2. Clone This Repository
 
 ```bash
-# Test Things3-MCP connection
-cd /path/to/Things3-MCP
-uv run Things3-MCP-server
-
-# Verify Things access
-# The server should connect to your local Things database
-# Make sure Things app is running on your Mac
-```
-
-### 3. Setup Google Calendar Integration
-
-```bash
-# Follow Google Calendar MCP setup guide
-# https://github.com/nspady/google-calendar-mcp
-
-# You'll need:
-# - Google Cloud Project
-# - Calendar API enabled
-# - OAuth2 credentials
-```
-
-### 4. Clone and Configure This Project
-
-```bash
-# Clone this repository
 git clone https://github.com/realYushi/my-gtd-buddy.git
 cd my-gtd-buddy
-
-# Copy opencode.json (update paths for your system)
-# Edit the MCP server paths in opencode.json:
 ```
 
-Edit `opencode.json` to match your setup:
+### 3. Set Up things-mcp
+
+[things-mcp](https://github.com/cowboy/things-mcp) provides read/write access to Things 3.
+
+```bash
+# Clone into project directory
+git clone https://github.com/cowboy/things-mcp.git
+
+# Install dependencies
+cd things-mcp
+uv sync
+cd ..
+```
+
+**Verify Things 3 is configured:**
+1. Open Things 3
+2. **Things → Settings → General** → Enable "Things URLs"
+3. Keep Things running (MCP needs it open to access the database)
+
+### 4. Set Up macos-calendar-mcp
+
+[macos-calendar-mcp](https://github.com/aiguofer/macos-calendar-mcp) provides read/write access to macOS Calendar.
+
+```bash
+# Clone into project directory
+git clone https://github.com/aiguofer/macos-calendar-mcp.git
+
+# Install dependencies
+cd macos-calendar-mcp
+npm install
+cd ..
+```
+
+**Grant calendar permissions:**
+- When first run, macOS will prompt for Calendar access
+- Allow access in System Settings → Privacy & Security → Calendars
+
+### 5. Configure MCP
+
+Create `.mcp.json` in the project root:
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
-  "mode": {
-    "gtd": {
-      "prompt": "{file:./.opencode/prompts/gtd-master.md}",
-      "temperature": 0.3
-    }
-  },
-  "mcp": {
+  "mcpServers": {
     "things": {
-      "type": "local",
-      "enabled": true,
-      "command": [
-        "uv",
+      "command": "uv",
+      "args": [
         "--directory",
-        "/YOUR/PATH/TO/Things3-MCP",
+        "/FULL/PATH/TO/my-gtd-buddy/things-mcp",
         "run",
-        "Things3-MCP-server"
+        "things_server.py"
       ]
     },
-    "google-calendar": {
-      "type": "local", 
-      "enabled": true,
-      "command": ["npx", "@cocal/google-calendar-mcp"]
+    "calendar": {
+      "command": "node",
+      "args": [
+        "/FULL/PATH/TO/my-gtd-buddy/macos-calendar-mcp/macos-calendar-mcp.js"
+      ]
     }
   }
 }
 ```
 
-### 5. Initialize Your GTD System
+**Important:** Replace `/FULL/PATH/TO/` with your actual path (e.g., `/Users/yourname/projects/`).
+
+### 6. Verify Setup
 
 ```bash
-# Start opencode in your project directory
 cd /path/to/my-gtd-buddy
-opencode
+claude
 
-# Test the connection
-opencode "Check my Things inbox"
-opencode "Show my calendar for today"
+# Test Things connection
+> what's in my inbox
+# Should list your Things inbox items
+
+# Test Calendar connection
+> what's on my calendar today
+# Should show today's events
 ```
 
-### 6. Configure Things App
+**Troubleshooting:**
+- If Things tools fail: Ensure Things 3 is open and URLs are enabled
+- If Calendar tools fail: Check macOS privacy permissions
+- Run `claude --mcp-debug` for detailed MCP connection logs
 
-Enable these Things settings for optimal GTD workflow:
+## How to Use
 
-1. **Settings → Calendar Events** - Enable to see appointments alongside tasks
-2. **Settings → Badge** - Show Today count (optional)
-3. **Create initial Areas** (manually in Things):
-    - Personal
-    - Work
-    - Projects
-    - Someday/Maybe
+### Natural Language Commands
 
-### 7. Optional: Set Up Quick Capture
-
-**macOS:**
-
--   Things → Preferences → Quick Entry → Set global shortcut (Ctrl+Space recommended)
-
-**iOS:**
-
--   Add Things widget to home screen
--   Use Siri: "Hey Siri, add to Things..."
-
-## 🚀 How to Use
-
-### Getting Started
-
-1. **Open opencode in the project directory:**
-
-    ```bash
-    cd /path/to/my-gtd-buddy
-    opencode
-    ```
-
-2. **Start using the GTD system with natural language:**
-
-    ```
-    # The system automatically routes to appropriate workflow phases
-    Plan my day                    # → Daily Planning Workflow
-    Add task: Call dentist tomorrow # → Built-in Capture
-    What should I work on next?    # → Execution Workflow
-    Start weekly review           # → Review Phase Workflow
-    ```
-
-3. **No mode switching required** - the GTD Master Agent intelligently routes your requests to specialized workflow phases based on your intent.
-
-### Quick Start Commands
-
-Interact with your GTD system using natural language - the system automatically routes to the right workflow:
+The GTD skill automatically routes based on intent:
 
 ```
-# Daily planning (routes to Planning Workflow)
-Plan my day
-Process my inbox
-Help me organize tasks
+# Planning (→ Daily Planning workflow)
+process inbox
+plan my day
+what's in my inbox
 
-# Built-in capture
-Add task: Research new productivity tools
-Remember to prep for meeting
-Capture: Buy groceries
+# Execution (→ Execution workflow)
+what should I do
+I have 30 minutes
+feeling tired, what can I work on
 
-# Task execution (routes to Execution Workflow)
-What should I work on next?
-Show me high-energy tasks
-I need a quick task before lunch
+# Review (→ Review workflow)
+weekly review
+how did I do today
+what did I accomplish
 
-# System maintenance (routes to Review Workflow)
-Start weekly review
-Check all project statuses
-Maintain my system
+# Capture (→ Inbox, then continue)
+remind me to call dentist
+add task: prepare presentation
 ```
 
-### Workflow Delegation (Automatic Routing)
+### Proactive AI Behavior
 
-The GTD Master Agent automatically routes your requests to specialized workflow phases:
+The skill surfaces information automatically:
 
-**Planning Requests** → Daily Planning Workflow:
-```
-Plan my day
-Process my inbox  
-Help me organize tasks
-Show me what needs scheduling
-```
+- **Morning**: "3 things today — start with '[task]'?"
+- **After completion**: "Nice. '[similar task]' next?"
+- **Deadline approaching**: "'[task]' due tomorrow. Tackle now?"
+- **Stale task**: "'[task]' sitting 7 days. Still relevant?"
+- **End of day**: "2 items left. Tomorrow or quick finish?"
 
-**Execution Requests** → Execution Workflow:
-```
-What should I work on next?
-Show me high-energy tasks
-I need something quick
-Find tasks for my current context
-```
-
-**Review Requests** → Review Phase Workflow:
-```
-Start weekly review
-Check all project statuses  
-Review my system health
-Maintain my GTD system
-```
-
-**Capture Requests** → Built-in Capture:
-```
-Add task: Call dentist tomorrow
-Remember to buy groceries
-Meeting prep for Friday
-```
-
-### Things Integration Examples
+### Context-Aware Filtering
 
 ```
-# Check your current setup
-Show my Today list
-What's in my inbox?
-Get my upcoming tasks
+# By time
+I have 15 minutes → suggests #quick tasks
 
-# Add structured tasks
-Add project: Website redesign with tasks: wireframes, design, development
-Create a todo to prepare for meeting tomorrow
+# By energy
+feeling tired → suggests #low energy tasks
 
-# Context-based task filtering  
-Show me @home tasks for low energy
-Find tasks tagged with @calls
-Search for tasks related to "project review"
-
-# Advanced operations
-Update task status to completed
-Move task to different project
-Set deadline for task
+# By location
+I'm at home → filters for @home tasks
 ```
 
-## 🚀 Daily Workflow
+## Daily Workflow
 
 ### Morning (10 minutes)
 
-1. **Interactive planning**: "Plan my day" - routes to Daily Planning workflow
-2. **Guided inbox processing**: Interactive questions process Things Inbox to zero
-3. **Smart scheduling**: GTD Master schedules tasks optimally: Today → Upcoming → Anytime → Someday
+1. **"process inbox"** — Interactive inbox processing
+2. Answer: "Actionable?" → "Next action?" → "When?" → "Which area?"
+3. Result: Inbox to zero, Today list ready
 
 ### Throughout Day
 
-1. **Context-aware execution**: "What should I work on?" - routes to Execution workflow  
-2. **Intelligent suggestions**: System considers your energy, time, and context
-3. **Built-in capture**: "Add task: [task]" - direct capture to Things Inbox
-4. **Focused work**: System guides single-task execution with context switching
+1. **"what should I do"** — Context-aware suggestions
+2. **"I have X minutes"** — Time-based filtering
+3. **Capture interruptions** — "remind me to..." → back to focus
 
-### Weekly (20 minutes)
+### Continuous (AI-initiated)
 
-1. **Strategic review**: "Start weekly review" - routes to Review Phase workflow
-2. **Project maintenance**: Interactive assessment of all Areas and Projects
-3. **Someday processing**: Guided movement through Someday → Anytime → Today flow
-4. **System health**: Automated maintenance for clean, trustworthy system
+- Deadline warnings (24-48h out)
+- Stale task surfacing (7+ days)
+- Stuck project detection (14+ days)
+- End of day summary
 
-## 🛠 Customization
+### Weekly (5 minutes)
 
-Want to adapt this system for your preferred todo app or workflow? Here's how:
+1. **"weekly review"** — Mind sweep
+2. Brain dump → waiting check → someday glance
+3. Forward look for upcoming week
+
+## Customization
 
 ### For Different Todo Apps
 
-1. **Replace MCP Server**: Find or create an MCP server for your todo app
-2. **Update Agent Instructions**: Modify files in `.opencode/agent/` to match your app's terminology
-3. **Adjust opencode.json**: Update the MCP configuration
+1. Replace things-mcp with your app's MCP server
+2. Update `reference/tools.md` with your app's tools
+3. Modify workflow files for your app's terminology
 
 ### For Different Workflows
 
-1. **Modify Workflow Components**: Edit the `.opencode/agent/*.md` files to match your preferred GTD approach
-2. **Adjust Temperature Settings**: Fine-tune AI behavior in `opencode.json`
-3. **Customize Routing Logic**: Modify the GTD Master Agent in `.opencode/prompts/gtd-master.md` for different workflow phases
+1. Edit files in `.claude/skills/gtd/workflows/`
+2. Adjust trigger patterns in `SKILL.md`
+3. Modify tag system in `reference/tags.md`
 
-## 🔒 Privacy Note
+## Privacy Note
 
-This is a **personal use project** containing:
-
--   Custom workflow configurations
--   Personal productivity patterns
--   Private API credentials (not included in repo)
-
-All sensitive data is excluded from version control.
+This is a **personal use project**. All sensitive data (API credentials, personal tasks) is excluded from version control.
 
 ---
 
-_Built for personal productivity optimization using GTD principles and modern AI assistance._
+_Built for personal productivity using GTD principles and Claude Code._

@@ -36,3 +36,10 @@ build/
 # Temporary files
 *.tmp
 *.temp
+
+# MCP Servers (cloned locally)
+things-mcp/
+macos-calendar-mcp/
+
+# MCP Configuration (contains local paths)
+.mcp.json

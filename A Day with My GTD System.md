@@ -1,6 +1,6 @@
 # A Day with My GTD System
 
-_How the opencode GTD agent system works in practice_
+_How the Claude Code GTD skill works in practice_
 
 ---
 
@@ -8,62 +8,81 @@ _How the opencode GTD agent system works in practice_
 
 **Capture thoughts immediately**
 
--   Brain dump: "Remember to follow up on job application"
--   **Action**: Add to Things Inbox
--   Goes straight to Inbox, no processing
+- Brain dump: "Remember to follow up on job application"
+- **Action**: "remind me to follow up on job application"
+- → "Captured: follow up on job application"
+- Goes to Inbox, no processing needed
 
 ## 7:30 AM - Morning Coffee & Planning (10 minutes)
 
-**Daily Planning Phase - Inbox to Zero**
+**Daily Planning — Inbox to Zero**
 
--   **Action**: opencode → "Plan my day"
--   System routes to Daily Planning Agent
--   Agent processes Things Inbox (13 items that need processing):
+- **Action**: "process inbox"
+- Skill routes to Daily Planning workflow
+- 13 items in inbox:
 
-1. **"client meeting"**
+```
+"13 items. Let's clear them.
 
-    - Actionable? Yes
-    - Next action: Prepare agenda for client meeting
-    - When? Today (scheduled for this week)
-    - **Action**: Move to Today list
+1/13: 'client meeting' — actionable?"
+```
 
-2. **"apply job"**
+> Yes
 
-    - Actionable? Yes
-    - Outcome: Submit quality job applications
-    - Next action: Update resume and cover letter
-    - When? This week (important but not urgent)
-    - **Action**: Schedule for tomorrow in Upcoming
+```
+"Next physical action?"
+```
 
-3. **"toggl"**
+> Prepare agenda for client meeting
 
-    - Actionable? Yes, but vague
-    - Outcome: Set up time tracking system
-    - Next action: Research Toggl features and pricing
-    - When? Not urgent
-    - **Action**: Move to Anytime list
+```
+"When?"
+```
 
-4. **"weekend meeting"**
+> Today
 
-    - Actionable? Yes
-    - Next action: Confirm weekend meeting agenda
-    - When? Before weekend
-    - **Action**: Schedule for Friday in Upcoming
+```
+"Done. Today.
 
-5. **"setup uni structure"**
-    - Actionable? Yes
-    - Outcome: Organized university project structure
-    - Next action: Create folder structure and documentation
-    - When? This week
-    - **Action**: Move to Anytime list
+2/13: 'apply job' — actionable?"
+```
 
-_[Continue processing remaining 8 items]_
+> Yes, update resume and cover letter
 
-**Inbox Status**: ✅ ZERO (all 13 items processed)
+```
+"When?"
+```
 
-**Today List Check**: 3 new tasks + existing tasks = 8 total
-**Energy Level**: High morning energy
-**Calendar**: 10 AM team meeting, 2 PM client call
+> Tomorrow
+
+```
+"Done. Tomorrow.
+
+3/13: 'toggl' — looks vague. What's the outcome?"
+```
+
+> Research Toggl features and pricing
+
+```
+"When?"
+```
+
+> Anytime
+
+```
+"Done. Anytime.
+
+4/13: 'weekend meeting' — actionable?"
+```
+
+_[Continue processing remaining items]_
+
+**Result**: Inbox zero in 10 minutes
+
+```
+"Inbox clear. Today: 8 tasks. Top priority: 'Prepare client meeting agenda'.
+You have 10 AM team meeting, 2 PM client call. Start with agenda prep?"
+```
 
 ---
 
@@ -71,24 +90,23 @@ _[Continue processing remaining 8 items]_
 
 **Execution Phase**
 
-**8:00 AM**: Ask system for guidance
+**8:00 AM**: Start focused work
 
--   **Action**: opencode → "What should I work on this morning?"
--   System routes to Execution Agent
--   Agent recommends high-energy task: "Prepare agenda for client meeting"
--   Work focused for 1.5 hours
+- **Action**: "what should I work on?"
+- Skill recommends: "'Prepare client meeting agenda' — high energy, 1.5 hours before your 10 AM meeting. Go?"
+- Work focused for 1.5 hours
 
 **10:00 AM**: Team meeting (from calendar)
 
--   Mid-meeting idea: "Need to research summer of tech program deadlines"
--   **Capture**: Add to Things Inbox
--   Continue meeting without losing focus
+- Mid-meeting idea: "Need to research summer of tech program"
+- **Capture**: "remind me to research summer of tech deadlines"
+- → "Captured. Back to meeting."
 
-**11:30 AM**: Need quick win before lunch
+**11:30 AM**: Quick win before lunch
 
--   **Action**: opencode → "I need a quick task before lunch"
--   Agent suggests "Confirm weekend meeting agenda" (15 minutes)
--   Complete and move on
+- **Action**: "I need something quick before lunch"
+- → "'Confirm weekend meeting agenda' — #quick, 15 min. Go?"
+- Complete and done
 
 ---
 
@@ -96,10 +114,11 @@ _[Continue processing remaining 8 items]_
 
 **Context Switch**
 
--   **Action**: opencode → "Show me tasks I can do during lunch break"
--   System shows "Research Toggl features and pricing" from Anytime list
--   Quick research on phone during lunch
--   **Action**: opencode → "Mark Toggl research as complete"
+- **Action**: "show me tasks I can do during lunch"
+- → "'Research Toggl features' from Anytime — good for phone research."
+- Quick research on phone
+- **Action**: "done with Toggl research"
+- → "Done. 7 remaining today."
 
 ---
 
@@ -107,36 +126,50 @@ _[Continue processing remaining 8 items]_
 
 **Continued Execution + Interruptions**
 
-**1:00 PM**: Random interruption - colleague asks about automation project
+**1:00 PM**: Random interruption
 
--   "Can you look into that job watching agent idea we discussed?"
--   **Capture**: Add to Things Inbox
--   Back to focused work without losing momentum
+- Colleague: "Can you look into that job watching agent idea?"
+- **Capture**: "add task: research job watching agent idea"
+- → "Captured: research job watching agent idea"
+- Back to focused work
 
 **2:00 PM**: Client call (from calendar)
 
-**3:30 PM**: Energy dip, need context switch
+**3:30 PM**: Energy dip
 
--   **Action**: opencode → "I'm feeling low energy, what can I work on?"
--   Agent suggests "Setup uni structure" - perfect for low energy organization
--   Complete in 30 minutes
+- **Action**: "feeling low energy, what can I work on?"
+- → "Low energy. Options:
+  1. 'Setup uni structure' — @home, #low
+  2. 'Organize desk' — @home, #low
 
-**4:00 PM**: Energy back up
+  Which feels right?"
+- Complete uni structure in 30 minutes
 
--   **Action**: opencode → "What's my priority for rest of day?"
--   Return to "Update resume and cover letter" for job applications
--   Focus work until end of day
+**4:00 PM**: Energy back
+
+- **Action**: "what's my priority for rest of day?"
+- → "'Update resume' for job applications. 2 hours before end of day."
+- Focus work until done
 
 ---
 
 ## 5:30 PM - End of Workday
 
-**Transition to Personal**
+**AI-initiated end of day prompt**
 
--   **Action**: opencode → "Review my remaining tasks for today"
--   Agent shows 2 tasks remaining: "Create workflow for audio transcription" and "Set up leader layer auto turn off"
--   **Decision**: Move both to Anytime list (technical tasks for when more focused)
--   Keep evening free for personal time
+```
+"Wrapping up? Today: 6 done, 2 remaining.
+- 'Audio transcription workflow'
+- 'Leader layer auto turn off'
+
+Tomorrow, or quick finish?"
+```
+
+> Move both to Anytime
+
+```
+"Done. Both moved to Anytime. Nice day — 6 tasks completed."
+```
 
 ---
 
@@ -144,77 +177,79 @@ _[Continue processing remaining 8 items]_
 
 **Personal Context**
 
-**6:00 PM**: Evening walk, sudden idea about university project
+**6:00 PM**: Evening walk, sudden idea
 
--   Thinking about "lab for special topic" from morning planning
--   **Idea**: Need to schedule meeting with professor
--   **Capture**: Add to Things Inbox
-
-**7:00 PM**: Dinner and relaxation
-
--   Feel accomplished with productive day
+- Thinking about university project
+- **Capture**: "remind me to schedule meeting with professor about lab"
+- → "Captured: schedule meeting with professor"
 
 **8:30 PM**: Personal projects time
 
--   Random thought: "Should research memory MCP integration"
--   **Capture**: Add to Things Inbox
+- Random thought about memory MCP
+- **Capture**: "add: research memory MCP integration"
+- → "Captured."
 
 **9:00 PM**: Wind down
 
--   **Action**: opencode → "Show my completed tasks today"
--   Review progress: Client meeting prep, uni structure, Toggl research, resume work
--   **Action**: opencode → "What's scheduled for tomorrow?"
+- **Action**: "what did I accomplish today?"
+- → "Today: 6 completed. Wins: client meeting prep, uni structure, resume work."
+
+- **Action**: "what's scheduled for tomorrow?"
+- → "Tomorrow: 'Follow up on job application', 'Update resume'. 4 items in inbox from today."
 
 ---
 
-## 10:00 PM - End of Day Review
+## 10:00 PM - End of Day
 
-**Daily Completion**
+**Daily Summary**
 
--   **Action**: opencode → "Give me a daily summary"
--   **Today List Status**: ✅ 6 of 8 completed (moved 2 technical tasks to Anytime)
--   **Inbox**: 4 new items captured during the day (including morning capture)
--   **Tomorrow**: Job application follow-up scheduled
--   **Feeling**: Productive, organized, nothing lost
+- **Today**: 6 of 8 completed (2 moved to Anytime)
+- **Inbox**: 4 new captures during day
+- **Tomorrow**: Job application follow-up scheduled
+- **Feeling**: Productive, organized, nothing lost
 
-**Key GTD Wins Today**:
+**Key Wins**:
 
--   Never lost an idea (captured 4 interruptions instantly using Things)
--   Stayed focused during meetings and client calls
--   AI agent matched tasks to energy levels automatically
--   Used intelligent context switching effectively
--   Made progress on multiple university and work projects
--   Maintained work-life balance
+- Never lost an idea (4 captures instantly)
+- Stayed focused during meetings
+- AI matched tasks to energy levels
+- Smooth context switching
+- Work-life balance maintained
 
 ---
 
-## The GTD Magic in Action
+## The GTD Skill in Action
 
 ### Capture (Throughout Day)
 
--   **4 instant captures** using Things
--   Zero mental overhead - trust the inbox
--   Never lost focus during important work
+- 4 instant captures
+- Zero mental overhead
+- "Captured." — back to focus
 
-### Daily Planning (7:30 AM)
+### Planning (7:30 AM)
 
--   **10 minutes** with Daily Planning Agent to process 13 inbox items to zero
--   Clear priorities for the day
--   Proper scheduling using Today/Upcoming/Anytime
+- 10 minutes to process 13 items
+- Terse interaction: "Actionable?" → "When?" → "Done."
+- Proper scheduling using Things lists
 
 ### Execution (All Day)
 
--   **Execution Agent** provides context-aware task recommendations
--   **Natural language** requests for energy/time matching
--   **Calendar integration** for seamless scheduling
--   **One task at a time** with complete focus
+- Context-aware suggestions
+- Energy/time matching
+- One task at a time
 
-### Weekly Review (Fridays)
+### Proactive (AI-initiated)
 
--   **Review Agent** maintains Areas and projects
--   Someday list gets regular attention
--   System stays clean and trustworthy
+- End of day summary
+- Deadline warnings
+- Stale task surfacing
+
+### Review (Continuous)
+
+- Micro-reviews throughout
+- No heavy weekly sessions
+- System stays clean
 
 ---
 
-_This is how GTD becomes invisible - a trusted AI-powered system that handles complexity so you can focus on what matters._
+_This is how GTD becomes invisible — a trusted AI-powered system that handles complexity so you can focus on what matters._
