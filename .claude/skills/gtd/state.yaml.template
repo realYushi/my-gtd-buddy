@@ -1,0 +1,39 @@
+# GTD State Template
+# Copy this file to state.yaml to get started
+# cp state.yaml.template state.yaml
+
+last_session:
+  date: null
+  mode: null
+  items_processed: 0
+
+last_review:
+  date: null
+  completed_count: 0
+  focus: null
+
+# Weekly trends (rolling 4 weeks)
+# These populate automatically as you use the system
+trends:
+  weekly_completed: []      # e.g., [12, 8, 15, 10]
+  weekly_processed: []      # e.g., [20, 15, 25, 18]
+  weekly_deferred: []       # e.g., [3, 5, 2, 4]
+
+# Context usage frequency
+# Tracks how often you use each context
+contexts:
+  home: 0
+  office: 0
+  errands: 0
+  calls: 0
+
+# Observed patterns
+# System learns your productivity patterns over time
+patterns:
+  peak_days: []             # e.g., ["Monday", "Wednesday"]
+  defer_days: []            # e.g., ["Friday"]
+  avg_process_velocity: 0   # items per session
+
+# Your preferences
+preferences:
+  processing_style: quick   # quick | thorough

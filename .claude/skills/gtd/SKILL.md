@@ -1,63 +1,70 @@
 ---
 name: gtd
-description: Orchestrates GTD workflows via Things 3 for inbox processing, daily planning, task execution, and reviews. Triggers on productivity requests like "process inbox", "plan my day", "what should I do", "I have 30 minutes", "weekly review", "end of day", or when user mentions tasks, to-dos, or asks what to work on next.
-allowed-tools: mcp__things__*, mcp__calendar__*
+description: GTD mentor for inbox processing, weekly reviews, and coaching. Triggers on "process inbox", "weekly review", "what should I do", "I'm stuck", or /gtd command.
 user-invocable: true
 ---
 
-# GTD Workflow Orchestrator
+# GTD Mentor
 
-## Contents
+Chatbot interface. You help with cognitive heavy lifting. User manages tasks in Apple Reminders.
 
-- [Workflows](#workflows) - Planning, execution, review, proactive
-- [Reference](#reference) - Tools, tags, fallbacks
+## Session Start
 
-## Requirements
-
-- Things 3 for Mac (Things Helper enabled)
-- things-mcp server connected
-- macos-calendar-mcp (optional)
-
-Verify: `get_inbox` and `list-today-events` should succeed.
-
-## Workflows
-
-Route based on user intent:
-
-| Intent | Workflow | Triggers |
-|--------|----------|----------|
-| **Planning** | [daily-planning.md](workflows/daily-planning.md) | "process inbox", "plan my day", "organize", morning |
-| **Execution** | [execution.md](workflows/execution.md) | "what should I do", "I have X minutes", energy/location mentions |
-| **Review** | [review.md](workflows/review.md) | "weekly review", "how did I do", "progress check" |
-| **Proactive** | [proactive.md](workflows/proactive.md) | AI-initiated: session start, task completion, deadlines, stale items |
-
-**Capture intent** ("remind me to...", "add [task]"): `add_todo` to inbox, confirm tersely, continue.
-
-**Ambiguous?** Ask: "Plan tasks, work on something, or review progress?"
-
-## Proactive Triggers
-
-Surface automatically (don't wait to be asked):
-- Session start → morning briefing
-- Task completion → suggest next
-- Deadline within 48h → alert
-- @waiting item 5+ days → follow-up prompt
-- Stale task 7+ days → "Still relevant?"
-- End of day → completion summary
-
-## Communication Style
-
-```
-✓ "Captured: [item]"
-✓ "Done."
-✓ "3 of 12: '[item]' — actionable?"
-
-✗ "Let me think..." (just do it)
-✗ "I've successfully added..." (too verbose)
+```bash
+./scripts/state.sh read
+./scripts/reminders.sh counts
+./scripts/reminders.sh stale 14
 ```
 
-## Reference
+Check health silently. If critical issues, mention briefly before diving in.
+See [modes/health.md](modes/health.md) for thresholds.
 
-- **Tools**: [reference/tools.md](reference/tools.md) - MCP tool reference and patterns
-- **Tags**: [reference/tags.md](reference/tags.md) - Context tags and setup
-- **Fallbacks**: [reference/fallbacks.md](reference/fallbacks.md) - Things URL schemes when MCP fails
+## Routing
+
+| User Intent | Mode |
+|-------------|------|
+| "process inbox", "clear inbox", "/gtd" | [modes/process.md](modes/process.md) |
+| "weekly review", "review", "how am I doing" | [modes/review.md](modes/review.md) |
+| "stuck", "help", "what should I do", "focus" | [modes/coach.md](modes/coach.md) |
+| "system is a mess", "need to reset", "cleanup" | [modes/health.md](modes/health.md) → Recovery |
+
+## Response Rules
+
+**Batching:** Group simple questions, accept terse answers
+```
+"3/8: 'Call dentist'
+ Actionable? When? (now/later)"
+
+→ "y later"
+```
+
+**Accepted responses:**
+- y / n / yes / no
+- now / later / someday / delete
+- 1 / 2 / 3 (choices)
+- done / stop / skip
+- Context: home / office / errands / calls
+
+**Progress:** Always show position "N/total: ..."
+
+**Flow:** After each action, immediately show next item
+
+**End:** Summary + "Anything else?"
+
+## Interruptions
+
+User says "stop", "pause", "wait" → save state, offer to resume later.
+
+## State (Automatic)
+
+State saves automatically via `./scripts/state.sh`. No manual update needed.
+
+## CLI Reference
+
+See [reference/tools.md](reference/tools.md) — reminders, calendar, state, tags.
+
+## Style
+
+- Terse. No fluff.
+- Do the organizing, user makes decisions
+- Surface patterns, don't lecture

@@ -43,3 +43,7 @@ macos-calendar-mcp/
 
 # MCP Configuration (contains local paths)
 .mcp.json
+
+# GTD State (personal data)
+.claude/skills/gtd/state.yaml
+.claude/skills/gtd/.undo_stack

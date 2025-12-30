@@ -1,6 +1,6 @@
 # My GTD Buddy
 
-A Things-native Getting Things Done (GTD) workflow powered by Claude Code. This project implements a streamlined GTD system that leverages Things' built-in strengths with an intelligent AI skill to orchestrate workflow management.
+A Reminders-native Getting Things Done (GTD) workflow powered by Claude Code. This project implements a streamlined GTD system using Apple Reminders with an intelligent AI skill to orchestrate workflow management.
 
 ## Table of Contents
 
@@ -20,79 +20,95 @@ A Things-native Getting Things Done (GTD) workflow powered by Claude Code. This 
 
 ## Overview
 
-This is my personal implementation of David Allen's GTD methodology, designed around the Things app with an intelligent Claude Code skill to orchestrate workflows. **While I use Things 3, you can adapt this system to work with any todo list app** by replacing the MCP server and updating the skill instructions.
+This is my personal implementation of David Allen's GTD methodology, designed around Apple Reminders with an intelligent Claude Code skill to orchestrate workflows. **While I use Apple Reminders, you can adapt this system to work with any todo list app** by modifying the shell scripts.
 
 The system focuses on:
 
-- **Instant capture** — Everything goes to Things Inbox first
+- **Instant capture** — Everything goes to Reminders Inbox first
 - **Daily planning** — Inbox to zero with interactive processing
-- **Focused execution** — Context-aware task selection
-- **Continuous review** — AI-driven micro-reviews, not heavy scheduled sessions
-- **Proactive surfacing** — AI surfaces relevant info without being asked
+- **Focused execution** — Context-aware task selection with energy matching
+- **Continuous review** — AI-driven micro-reviews with project health checks
+- **Proactive surfacing** — AI surfaces relevant info using historical patterns
+- **Undo support** — Safely undo moves and completions
 
-> **See It In Action**: Check out [A Day with My GTD System.md](A%20Day%20with%20My%20GTD%20System.md) — a complete walkthrough from morning to night showing how the system handles real interruptions, context switching, and maintains focus.
+> **See It In Action**: Check out [A Day with My GTD System.md](A%20Day%20with%20My%20GTD%20System.md) — a complete walkthrough from morning to night showing how the system handles real interruptions, context switching, and maintains focus. Also see [SCENARIOS.md](SCENARIOS.md) for recipes for common situations like "Post-Vacation Reset" or "5-Minute Gap".
 
 ## Key Features
 
-- **Things-native scheduling** — Leverages Today/Upcoming/Anytime/Someday naturally
+- **Apple Reminders native** — Uses standard Reminders lists (Inbox, Next Actions, Waiting For, Someday, Projects)
 - **Calendar integration** — macOS Calendar for appointment + task coordination
-- **Context tags** — Location (@home, @office) and energy (#high, #low, #quick) filtering
-- **Proactive AI** — Surfaces deadlines, stale tasks, and suggestions automatically
+- **Context tags** — Location (@home, @office) and energy (#high, #low, #quick) in notes
+- **Historical patterns** — Tracks velocity, peak days, context usage for smarter suggestions
+- **Project health** — Detects orphan projects without next actions
+- **Waiting nudges** — Shows waiting items with age, prompts for follow-ups
+- **Undo support** — Undo last move/complete actions
+- **Natural language dates** — "tomorrow 2pm", "next friday", "Jan 15"
+- **Batch operations** — Declare bankruptcy on stale items
 - **Terse communication** — "Captured: [item]" not "I've successfully added..."
-- **Continuous micro-reviews** — Surface issues as detected, not on schedule
 
 ## Technology Stack
 
 - **[Claude Code](https://claude.ai/code)** — AI-powered CLI with Skills support
-- **[things-mcp](https://github.com/cowboy/things-mcp)** — Direct integration with Things app
-- **[macos-calendar-mcp](https://github.com/aiguofer/macos-calendar-mcp)** — macOS Calendar integration
+- **Apple Reminders** — Native macOS/iOS reminders app
+- **macOS Calendar** — Native calendar app
+- **yq** — YAML processor for robust state management
+- **AppleScript** — Shell scripts wrapping osascript for Reminders/Calendar access
 
 ## System Architecture
 
 ```mermaid
 graph TB
-    subgraph "Claude Code"
+    subgraph "Claude Code Skill"
         SKILL[GTD Skill<br/>Workflow Orchestrator]
-        PLAN[Daily Planning<br/>Inbox Processing]
-        EXEC[Execution<br/>Context-Aware Selection]
-        REV[Continuous Review<br/>Micro-Reviews]
-        PRO[Proactive<br/>AI-Initiated Suggestions]
+        PROCESS[Process Mode<br/>Inbox Processing]
+        COACH[Coach Mode<br/>Context-Aware Selection]
+        REVIEW[Review Mode<br/>Weekly + Project Health]
+        HEALTH[Health Mode<br/>System Recovery]
 
-        SKILL --> PLAN
-        SKILL --> EXEC
-        SKILL --> REV
-        SKILL --> PRO
+        SKILL --> PROCESS
+        SKILL --> COACH
+        SKILL --> REVIEW
+        SKILL --> HEALTH
     end
 
-    subgraph "MCP Layer"
-        TMCP[things-mcp]
-        CMCP[macos-calendar-mcp]
+    subgraph "Scripts Layer"
+        RSCRIPT[reminders.sh<br/>AppleScript Wrapper]
+        CSCRIPT[calendar.sh<br/>AppleScript Wrapper]
+        SSCRIPT[state.sh<br/>Trend Tracking]
     end
 
-    subgraph "Things App"
+    subgraph "Apple Reminders"
         INBOX[Inbox]
-        TODAY[Today]
-        UPCOMING[Upcoming]
-        ANYTIME[Anytime]
+        NEXT[Next Actions]
+        WAITING[Waiting For]
         SOMEDAY[Someday]
         PROJECTS[Projects]
     end
 
     subgraph "macOS Calendar"
         EVENTS[Events]
-        DEADLINES[Deadlines]
+        FREE[Free Time]
     end
 
-    SKILL --> TMCP
-    SKILL --> CMCP
-    TMCP --> INBOX
-    TMCP --> TODAY
-    TMCP --> UPCOMING
-    TMCP --> ANYTIME
-    TMCP --> SOMEDAY
-    TMCP --> PROJECTS
-    CMCP --> EVENTS
-    CMCP --> DEADLINES
+    subgraph "State"
+        TRENDS[Weekly Trends]
+        PATTERNS[Day Patterns]
+        VELOCITY[Processing Velocity]
+    end
+
+    SKILL --> RSCRIPT
+    SKILL --> CSCRIPT
+    SKILL --> SSCRIPT
+    RSCRIPT --> INBOX
+    RSCRIPT --> NEXT
+    RSCRIPT --> WAITING
+    RSCRIPT --> SOMEDAY
+    RSCRIPT --> PROJECTS
+    CSCRIPT --> EVENTS
+    CSCRIPT --> FREE
+    SSCRIPT --> TRENDS
+    SSCRIPT --> PATTERNS
+    SSCRIPT --> VELOCITY
 ```
 
 ## GTD Workflow
@@ -102,46 +118,44 @@ graph TB
 ```mermaid
 graph LR
     CAPTURE[CAPTURE<br/>Instant<br/>→ Inbox]
-    PLANNING[PLANNING<br/>10 min<br/>Inbox → 0]
-    EXECUTION[EXECUTION<br/>All Day<br/>Context-Aware]
-    REVIEW[REVIEW<br/>Continuous<br/>Micro-Reviews]
+    PROCESS[PROCESS<br/>10 min<br/>Inbox → 0]
+    COACH[COACH<br/>All Day<br/>Energy-Aware]
+    REVIEW[REVIEW<br/>Weekly<br/>5 Parts]
 
-    CAPTURE --> PLANNING
-    PLANNING --> EXECUTION
-    EXECUTION --> REVIEW
+    CAPTURE --> PROCESS
+    PROCESS --> COACH
+    COACH --> REVIEW
     REVIEW --> CAPTURE
 
     classDef capture fill:#e1f5fe
-    classDef planning fill:#f3e5f5
-    classDef execution fill:#e8f5e8
+    classDef process fill:#f3e5f5
+    classDef coach fill:#e8f5e8
     classDef review fill:#fff3e0
 
     class CAPTURE capture
-    class PLANNING planning
-    class EXECUTION execution
+    class PROCESS process
+    class COACH coach
     class REVIEW review
 ```
 
-### Things List Flow
+### Reminders List Flow
 
 ```mermaid
 flowchart TD
     START[Idea/Task] --> INBOX[INBOX]
     INBOX --> DECISION{Processing}
 
-    DECISION -->|Important & Urgent| TODAY[TODAY<br/>Commit to start today]
-    DECISION -->|Scheduled/Deadline| UPCOMING[UPCOMING<br/>Future planned]
-    DECISION -->|Ready when needed| ANYTIME[ANYTIME<br/>Available to start]
-    DECISION -->|Maybe someday| SOMEDAY[SOMEDAY<br/>Future consideration]
+    DECISION -->|"y now"| NEXT_FLAG[NEXT ACTIONS<br/>Flagged for today]
+    DECISION -->|"y later"| NEXT[NEXT ACTIONS<br/>Ready when needed]
+    DECISION -->|"someday"| SOMEDAY[SOMEDAY<br/>Future consideration]
+    DECISION -->|"delete"| DELETE[Deleted]
 
-    TODAY --> EXECUTE[EXECUTE]
-    UPCOMING --> CALENDAR[Calendar View]
-    ANYTIME --> CONTEXT[Context Switch]
-    SOMEDAY --> REVIEW_CYCLE[Micro-Review]
+    NEXT_FLAG --> EXECUTE[EXECUTE]
+    NEXT --> CONTEXT[Context Filter]
+    SOMEDAY --> REVIEW_CYCLE[Weekly Review]
 
-    REVIEW_CYCLE --> ANYTIME
+    REVIEW_CYCLE --> NEXT
     CONTEXT --> EXECUTE
-    CALENDAR --> TODAY
 ```
 
 ## Project Structure
@@ -150,37 +164,38 @@ flowchart TD
 .claude/
 └── skills/
     └── gtd/
-        ├── SKILL.md              # Main orchestrator (64 lines)
-        ├── reference/
-        │   ├── tools.md          # MCP tool reference
-        │   ├── tags.md           # Tag system and setup
-        │   └── fallbacks.md      # URL schemes for MCP failures
-        └── workflows/
-            ├── daily-planning.md # Interactive inbox processing
-            ├── execution.md      # Context-aware task selection
-            ├── review.md         # Continuous micro-reviews
-            └── proactive.md      # AI-initiated suggestions
+        ├── SKILL.md              # Main orchestrator + routing
+        ├── state.yaml            # Trends, patterns, preferences
+        ├── modes/
+        │   ├── process.md        # Interactive inbox processing
+        │   ├── coach.md          # Context + energy-aware selection
+        │   ├── review.md         # 5-part weekly review
+        │   └── health.md         # System health + recovery
+        ├── scripts/
+        │   ├── reminders.sh      # Apple Reminders AppleScript wrapper
+        │   ├── calendar.sh       # macOS Calendar AppleScript wrapper
+        │   └── state.sh          # Trend and pattern tracking (uses yq)
+        └── reference/
+            └── tools.md          # Complete CLI reference
 
-.mcp.json                         # MCP server configuration
 A Day with My GTD System.md       # Real workflow example
+SCENARIOS.md                      # Common scenarios and recipes
 ```
 
 ## Requirements
 
-- **Things 3** (macOS) — Or any todo list app with MCP integration
-- **macOS Calendar** — For calendar integration
+- **macOS** — Required for AppleScript integration
+- **Apple Reminders** — Pre-installed on macOS
+- **macOS Calendar** — Pre-installed on macOS
 - **Claude Code** — AI-powered CLI
-- **MCP servers** — things-mcp and macos-calendar-mcp
-
-> **Using a Different Todo App?**
-> Replace the Things MCP server with one for your preferred app (Todoist, Notion, etc.) and update the skill instructions to match your app's terminology.
+- **yq** — Portable command-line YAML processor (`brew install yq`)
 
 ## Important Warning
 
-**AI systems can make mistakes!** This system has direct access to your Tasks and Calendar data. The AI may:
+**AI systems can make mistakes!** This system has direct access to your Reminders and Calendar data. The AI may:
 
-- Accidentally delete or modify tasks
-- Move tasks to wrong lists or dates
+- Accidentally delete or modify reminders
+- Move items to wrong lists
 - Create duplicate entries
 - Mess up calendar events
 
@@ -188,7 +203,7 @@ A Day with My GTD System.md       # Real workflow example
 
 - **Test with non-critical data first**
 - **Start slowly** — Begin with read-only commands
-- **Backup regularly** — Export your Things data
+- **Use undo** — `./scripts/reminders.sh undo` reverses last move/complete
 - **Review AI actions** — Always verify, especially for important tasks
 
 ## Setup Guide
@@ -199,11 +214,8 @@ A Day with My GTD System.md       # Real workflow example
 # Install Claude Code
 npm install -g @anthropic-ai/claude-code
 
-# Install uv (Python package manager) if not already installed
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install Node.js if not already installed (for calendar MCP)
-# https://nodejs.org/
+# Install yq
+brew install yq
 ```
 
 ### 2. Clone This Repository
@@ -213,90 +225,45 @@ git clone https://github.com/realYushi/my-gtd-buddy.git
 cd my-gtd-buddy
 ```
 
-### 3. Set Up things-mcp
+### 3. Set Up GTD Lists in Reminders
 
-[things-mcp](https://github.com/cowboy/things-mcp) provides read/write access to Things 3.
+Open Apple Reminders and create these lists:
+- **Inbox** — Capture bucket
+- **Next Actions** — Actionable tasks
+- **Waiting For** — Delegated/waiting items
+- **Someday** — Maybe later
+- **Projects** — Multi-step outcomes
+
+Or run the setup script:
+```bash
+./scripts/reminders.sh setup
+```
+
+### 4. Make Scripts Executable
 
 ```bash
-# Clone into project directory
-git clone https://github.com/cowboy/things-mcp.git
-
-# Install dependencies
-cd things-mcp
-uv sync
-cd ..
+chmod +x .claude/skills/gtd/scripts/*.sh
 ```
 
-**Verify Things 3 is configured:**
-1. Open Things 3
-2. **Things → Settings → General** → Enable "Things URLs"
-3. Keep Things running (MCP needs it open to access the database)
-
-### 4. Set Up macos-calendar-mcp
-
-[macos-calendar-mcp](https://github.com/aiguofer/macos-calendar-mcp) provides read/write access to macOS Calendar.
-
-```bash
-# Clone into project directory
-git clone https://github.com/aiguofer/macos-calendar-mcp.git
-
-# Install dependencies
-cd macos-calendar-mcp
-npm install
-cd ..
-```
-
-**Grant calendar permissions:**
-- When first run, macOS will prompt for Calendar access
-- Allow access in System Settings → Privacy & Security → Calendars
-
-### 5. Configure MCP
-
-Create `.mcp.json` in the project root:
-
-```json
-{
-  "mcpServers": {
-    "things": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/FULL/PATH/TO/my-gtd-buddy/things-mcp",
-        "run",
-        "things_server.py"
-      ]
-    },
-    "calendar": {
-      "command": "node",
-      "args": [
-        "/FULL/PATH/TO/my-gtd-buddy/macos-calendar-mcp/macos-calendar-mcp.js"
-      ]
-    }
-  }
-}
-```
-
-**Important:** Replace `/FULL/PATH/TO/` with your actual path (e.g., `/Users/yourname/projects/`).
-
-### 6. Verify Setup
+### 5. Verify Setup
 
 ```bash
 cd /path/to/my-gtd-buddy
 claude
 
-# Test Things connection
-> what's in my inbox
-# Should list your Things inbox items
+# Test Reminders connection
+> /gtd
+# Should show inbox count and health status
 
-# Test Calendar connection
-> what's on my calendar today
-# Should show today's events
+# Test specific commands
+> process inbox
+# Should start interactive inbox processing
 ```
 
 **Troubleshooting:**
-- If Things tools fail: Ensure Things 3 is open and URLs are enabled
-- If Calendar tools fail: Check macOS privacy permissions
-- Run `claude --mcp-debug` for detailed MCP connection logs
+- If Reminders access fails: Grant Terminal/Claude access in System Settings → Privacy & Security → Automation
+- If Calendar access fails: Grant access in System Settings → Privacy & Security → Calendars
+- If `state.sh` fails: Ensure `yq` is installed (`brew install yq`)
 
 ## How to Use
 
@@ -305,47 +272,51 @@ claude
 The GTD skill automatically routes based on intent:
 
 ```
-# Planning (→ Daily Planning workflow)
+# Processing (→ Process mode)
 process inbox
-plan my day
-what's in my inbox
+clear inbox
+/gtd
 
-# Execution (→ Execution workflow)
+# Coaching (→ Coach mode)
 what should I do
-I have 30 minutes
-feeling tired, what can I work on
+I'm stuck
+help me prioritize
+feeling tired
 
-# Review (→ Review workflow)
+# Review (→ Review mode)
 weekly review
-how did I do today
-what did I accomplish
+how am I doing
+review
 
-# Capture (→ Inbox, then continue)
-remind me to call dentist
-add task: prepare presentation
+# Recovery (→ Health mode)
+system is a mess
+need to reset
+cleanup
 ```
 
 ### Proactive AI Behavior
 
-The skill surfaces information automatically:
+The skill surfaces information using your historical patterns:
 
-- **Morning**: "3 things today — start with '[task]'?"
-- **After completion**: "Nice. '[similar task]' next?"
-- **Deadline approaching**: "'[task]' due tomorrow. Tackle now?"
-- **Stale task**: "'[task]' sitting 7 days. Still relevant?"
-- **End of day**: "2 items left. Tomorrow or quick finish?"
+- **Peak days**: "Tuesday is usually a strong day for you"
+- **Velocity**: "You usually process 12 items per session"
+- **Context**: "You do a lot @home — filter those?"
+- **Trends**: "Completions down lately. Overwhelmed?"
+- **Orphan projects**: "3 projects need a next action"
+- **Stale waiting**: "'Email from John' waiting 10 days. Nudge?"
 
 ### Context-Aware Filtering
 
 ```
-# By time
-I have 15 minutes → suggests #quick tasks
-
 # By energy
 feeling tired → suggests #low energy tasks
+high energy → suggests deep work, creative tasks
 
 # By location
 I'm at home → filters for @home tasks
+
+# By time available
+I have 15 minutes → suggests #quick tasks
 ```
 
 ## Daily Workflow
@@ -353,45 +324,54 @@ I'm at home → filters for @home tasks
 ### Morning (10 minutes)
 
 1. **"process inbox"** — Interactive inbox processing
-2. Answer: "Actionable?" → "Next action?" → "When?" → "Which area?"
-3. Result: Inbox to zero, Today list ready
+2. Answer: "Actionable? When?" → "y later" / "n delete" / "someday"
+3. Result: Inbox to zero, Next Actions ready
 
 ### Throughout Day
 
-1. **"what should I do"** — Context-aware suggestions
-2. **"I have X minutes"** — Time-based filtering
-3. **Capture interruptions** — "remind me to..." → back to focus
+1. **"what should I do"** — Energy + context-aware suggestions
+2. **"I'm stuck on [task]"** — Get unstuck with breakdown
+3. **Capture interruptions** — Added to inbox, process later
 
-### Continuous (AI-initiated)
+### Weekly Review (10 minutes)
 
-- Deadline warnings (24-48h out)
-- Stale task surfacing (7+ days)
-- Stuck project detection (14+ days)
-- End of day summary
+5 parts:
+1. **Wins** — Celebrate completed items
+2. **Stuck** — Triage stale items (7+ days)
+3. **Projects** — Ensure each has a next action
+4. **Waiting** — Check waiting items, send nudges
+5. **Mind sweep** — Capture anything floating in head
 
-### Weekly (5 minutes)
+### Recovery (When Needed)
 
-1. **"weekly review"** — Mind sweep
-2. Brain dump → waiting check → someday glance
-3. Forward look for upcoming week
+When system gets messy:
+1. **Declare bankruptcy** — Batch defer all stale items
+2. **Inbox blitz** — Rapid keep/dump
+3. **Focus mode** — Pick just 3 for the week
 
 ## Customization
 
 ### For Different Todo Apps
 
-1. Replace things-mcp with your app's MCP server
-2. Update `reference/tools.md` with your app's tools
-3. Modify workflow files for your app's terminology
+1. Replace `reminders.sh` with scripts for your app
+2. Update `reference/tools.md` with your commands
+3. Modify mode files for your app's terminology
 
 ### For Different Workflows
 
-1. Edit files in `.claude/skills/gtd/workflows/`
-2. Adjust trigger patterns in `SKILL.md`
-3. Modify tag system in `reference/tags.md`
+1. Edit files in `.claude/skills/gtd/modes/`
+2. Adjust routing patterns in `SKILL.md`
+3. Modify tag system in `reference/tools.md`
+
+### Tracking Preferences
+
+Edit `state.yaml` to customize:
+- `processing_style`: quick | thorough
+- Health thresholds in `modes/health.md`
 
 ## Privacy Note
 
-This is a **personal use project**. All sensitive data (API credentials, personal tasks) is excluded from version control.
+This is a **personal use project**. All data stays local on your Mac. The scripts use AppleScript to communicate with Reminders and Calendar — no cloud sync required.
 
 ---
 
