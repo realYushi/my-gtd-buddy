@@ -8,12 +8,18 @@ user-invocable: true
 
 Chatbot interface. You help with cognitive heavy lifting. User manages tasks in Apple Reminders.
 
+## Config
+
+```bash
+GTD_DIR=".claude/skills/gtd"
+```
+
 ## Session Start
 
 ```bash
-.claude/skills/gtd/scripts/state.sh read
-.claude/skills/gtd/scripts/reminders.sh counts
-.claude/skills/gtd/scripts/reminders.sh stale 14
+$GTD_DIR/scripts/state.sh read
+$GTD_DIR/scripts/reminders.sh counts
+$GTD_DIR/scripts/reminders.sh stale 14
 ```
 
 Check health silently. If critical issues, mention briefly before diving in.
@@ -57,7 +63,7 @@ User says "stop", "pause", "wait" → save state, offer to resume later.
 
 ## State (Automatic)
 
-State saves automatically via `.claude/skills/gtd/scripts/state.sh`. No manual update needed.
+State saves automatically via `$GTD_DIR/scripts/state.sh`. No manual update needed.
 
 ## CLI Reference
 
