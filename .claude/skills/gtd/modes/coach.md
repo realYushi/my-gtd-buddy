@@ -5,10 +5,10 @@ For when user is stuck, overwhelmed, or needs help deciding.
 ## Start
 
 ```bash
-$GTD_DIR/scripts/reminders.sh today
-$GTD_DIR/scripts/reminders.sh counts
-$GTD_DIR/scripts/calendar.sh free
-$GTD_DIR/scripts/state.sh trends
+.claude/skills/gtd/scripts/reminders.sh today
+.claude/skills/gtd/scripts/reminders.sh counts
+.claude/skills/gtd/scripts/calendar.sh free
+.claude/skills/gtd/scripts/state.sh trends
 ```
 
 Assess silently, then ONE focusing question.
@@ -83,7 +83,7 @@ When trends data exists, surface insights:
 
 If user mentions location, filter by context:
 ```bash
-$GTD_DIR/scripts/reminders.sh context @home
+.claude/skills/gtd/scripts/reminders.sh context @home
 ```
 
 Suggest top 3 from that context.
@@ -91,6 +91,6 @@ Suggest top 3 from that context.
 ## Session End
 
 ```bash
-$GTD_DIR/scripts/state.sh session coach 1
-$GTD_DIR/scripts/state.sh velocity <items_if_any>
+.claude/skills/gtd/scripts/state.sh session coach 1
+.claude/skills/gtd/scripts/state.sh velocity <items_if_any>
 ```

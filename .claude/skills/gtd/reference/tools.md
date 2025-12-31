@@ -11,7 +11,7 @@
 
 ## Reminders
 
-Script: `$GTD_DIR/scripts/reminders.sh`
+Script: `.claude/skills/gtd/scripts/reminders.sh`
 
 ### Lists
 
@@ -83,7 +83,7 @@ Script: `$GTD_DIR/scripts/reminders.sh`
 
 ## Calendar
 
-Script: `$GTD_DIR/scripts/calendar.sh`
+Script: `.claude/skills/gtd/scripts/calendar.sh`
 
 ### Lists
 
@@ -123,7 +123,7 @@ Date/time format: `YYYY-MM-DD HH:MM`
 
 ## State
 
-Script: `$GTD_DIR/scripts/state.sh`
+Script: `.claude/skills/gtd/scripts/state.sh`
 
 ### Basic
 

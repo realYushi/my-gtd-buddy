@@ -5,12 +5,12 @@ Keep it under 10 minutes. 5 parts: wins, stuck, projects, waiting, mind sweep.
 ## Start
 
 ```bash
-$GTD_DIR/scripts/reminders.sh counts
-$GTD_DIR/scripts/reminders.sh completed 7
-$GTD_DIR/scripts/reminders.sh stale 7
-$GTD_DIR/scripts/reminders.sh orphan-projects
-$GTD_DIR/scripts/reminders.sh waiting-age
-$GTD_DIR/scripts/state.sh trends
+.claude/skills/gtd/scripts/reminders.sh counts
+.claude/skills/gtd/scripts/reminders.sh completed 7
+.claude/skills/gtd/scripts/reminders.sh stale 7
+.claude/skills/gtd/scripts/reminders.sh orphan-projects
+.claude/skills/gtd/scripts/reminders.sh waiting-age
+.claude/skills/gtd/scripts/state.sh trends
 ```
 
 ```
@@ -74,8 +74,8 @@ Add each to inbox. "Got it." Repeat until "done."
 ## Close
 
 ```bash
-$GTD_DIR/scripts/state.sh review <completed_count> "<focus>"
-$GTD_DIR/scripts/state.sh weekly <completed> <processed> <deferred>
+.claude/skills/gtd/scripts/state.sh review <completed_count> "<focus>"
+.claude/skills/gtd/scripts/state.sh weekly <completed> <processed> <deferred>
 ```
 
 ```
