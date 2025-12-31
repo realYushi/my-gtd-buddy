@@ -3,7 +3,7 @@
 ## Start
 
 ```bash
-./scripts/reminders.sh inbox
+.claude/skills/gtd/scripts/reminders.sh inbox
 ```
 
 **Empty:** "Inbox clear." → end
@@ -51,7 +51,7 @@
 ## Session End
 
 ```bash
-./scripts/state.sh session process <count>
+.claude/skills/gtd/scripts/state.sh session process <count>
 ```
 
 ```

@@ -11,9 +11,9 @@ Chatbot interface. You help with cognitive heavy lifting. User manages tasks in 
 ## Session Start
 
 ```bash
-./scripts/state.sh read
-./scripts/reminders.sh counts
-./scripts/reminders.sh stale 14
+.claude/skills/gtd/scripts/state.sh read
+.claude/skills/gtd/scripts/reminders.sh counts
+.claude/skills/gtd/scripts/reminders.sh stale 14
 ```
 
 Check health silently. If critical issues, mention briefly before diving in.
@@ -57,7 +57,7 @@ User says "stop", "pause", "wait" → save state, offer to resume later.
 
 ## State (Automatic)
 
-State saves automatically via `./scripts/state.sh`. No manual update needed.
+State saves automatically via `.claude/skills/gtd/scripts/state.sh`. No manual update needed.
 
 ## CLI Reference
 
