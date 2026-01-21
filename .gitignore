@@ -47,3 +47,4 @@ macos-calendar-mcp/
 # GTD State (personal data)
 .claude/skills/gtd/state.yaml
 .claude/skills/gtd/.undo_stack
+.ace-tool/

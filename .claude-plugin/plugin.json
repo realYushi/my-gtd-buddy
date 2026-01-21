@@ -1,0 +1,13 @@
+{
+  "name": "gtd-buddy",
+  "description": "GTD mentor for inbox processing, weekly reviews, and coaching. Integrates with Apple Reminders and macOS Calendar.",
+  "version": "1.0.0",
+  "author": {
+    "name": "realYushi"
+  },
+  "homepage": "https://github.com/realYushi/my-gtd-buddy",
+  "repository": "https://github.com/realYushi/my-gtd-buddy",
+  "license": "MIT",
+  "keywords": ["gtd", "productivity", "reminders", "task-management", "apple-reminders"],
+  "skills": ".claude/skills/gtd"
+}
