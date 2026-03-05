@@ -1,6 +1,6 @@
 # Weekly Review
 
-Keep it under 10 minutes. 5 parts: wins, stuck, projects, waiting, mind sweep.
+5 parts, under 10 minutes. Move fast — the value is in the habit, not the thoroughness.
 
 ## Start
 
@@ -10,52 +10,75 @@ Keep it under 10 minutes. 5 parts: wins, stuck, projects, waiting, mind sweep.
 .claude/skills/gtd/scripts/reminders.sh stale 7
 .claude/skills/gtd/scripts/reminders.sh orphan-projects
 .claude/skills/gtd/scripts/reminders.sh waiting-age
-.claude/skills/gtd/scripts/state.sh trends
 ```
 
 ```
-"Weekly review. Quick.
+Weekly review. ~[N] min based on what's here.
 
 Last 7 days: [X] completed
-[Y] in Next Actions, [Z] in inbox
+[Y] in Next Actions, [Z] in inbox, [W] stale
 
-Ready?"
+Ready?
 ```
+
+Estimate time: 2 min base + 30s per stale item + 30s per orphan project + 30s per waiting item. Cap at 10 min estimate.
 
 ## Part 1: Wins (1 min)
 
 Show completed items. Ask: "Biggest win?"
 
-Acknowledge briefly, move on.
+Acknowledge briefly ("Nice." / "Solid."), move on. Don't dwell.
 
 ## Part 2: Stuck Items (2-3 min)
 
 **Stale (7+ days):**
-```
-"[N] items sitting 7+ days:
 
-1. '[item]' — still relevant? (y/n/someday)"
+If many stale items (8+), offer batch option first:
 ```
+[N] items sitting 7+ days. Want to:
+1. Triage one by one
+2. Bulk move old ones to Someday (keeps recent)
+```
+
+Otherwise go item by item:
+```
+[N] stale items:
+
+1. '[item]' ([X] days) — keep/someday/delete?
+```
+
+| Response | Action |
+|----------|--------|
+| `y` or `keep` | Keep in Next Actions |
+| `someday` | Move to Someday |
+| `delete` | Delete |
 
 ## Part 3: Project Health (1-2 min)
 
 **Orphan projects (no next action):**
-```
-"[N] projects need a next action:
 
-1. '[project]' — what's the next step?"
+Skip if none. Otherwise:
+```
+[N] projects need a next action:
+
+1. '[project]' — next step?
 ```
 
-Add next action to Next Actions, continue.
+User gives next action → add to Next Actions → next project.
+
+If user says "drop it" → delete project.
 
 ## Part 4: Waiting Check (1-2 min)
 
 **Waiting items with age:**
+
+Skip if none. Otherwise:
 ```
-"Waiting on:
+Waiting on:
 • '[item]' — [person] — [X] days
-  Still waiting? (y/nudge/done)"
 ```
+
+For each: "Still waiting? (y/nudge/done)"
 
 | Response | Action |
 |----------|--------|
@@ -66,24 +89,25 @@ Add next action to Next Actions, continue.
 ## Part 5: Mind Sweep (2 min)
 
 ```
-"Anything floating in your head not captured?"
+Anything floating in your head not captured?
 ```
 
-Add each to inbox. "Got it." Repeat until "done."
+Add each to inbox. "Got it." Repeat until "done" or "no."
 
 ## Close
 
 ```bash
 .claude/skills/gtd/scripts/state.sh review <completed_count> "<focus>"
-.claude/skills/gtd/scripts/state.sh weekly <completed> <processed> <deferred>
 ```
 
 ```
-"Review done.
-• [X] completed
+Review done.
+• [X] completed this week
 • [Y] stale triaged
 • [Z] projects checked
 • [W] waiting reviewed
 
-Next week focus?"
+Focus for next week?
 ```
+
+Save their answer as the focus. If they don't have one, that's fine — don't push.

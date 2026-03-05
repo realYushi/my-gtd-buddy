@@ -1,6 +1,6 @@
 # System Health
 
-Agent checks health at session start and surfaces issues naturally.
+Agent checks health at session start and surfaces issues naturally. Never lecture — state facts, offer action.
 
 ## Health Thresholds
 
@@ -11,40 +11,76 @@ Agent checks health at session start and surfaces issues naturally.
 | Days since review | 0-7 | 8-14 | 15+ |
 | Next Actions | 5-20 | 21-40 | 41+ |
 
-## Surfacing (Don't lecture, state facts)
+## Surfacing
+
+One issue at a time. Pick the worst metric and offer to fix it:
 
 ```
 "Inbox has 23 items. Clear now?"
 
 "8 items sitting 2+ weeks. Quick prune?"
 
-"Last review was 12 days ago. 5-min check-in?"
+"Last review was 12 days ago. Quick 5-min check?"
+
+"41 next actions — system's bloated. Trim down?"
 ```
+
+If multiple metrics are critical, still pick ONE. Fix it, then check if there's another.
 
 ## Recovery Mode
 
-Trigger: Critical health OR "system is a mess"
+Trigger: Critical health OR user says "system is a mess" / "need to reset" / "cleanup"
 
+First, show the damage briefly:
 ```
-"Let's reset. No guilt.
+[X] inbox, [Y] stale, [Z] days since review.
 
-1. Declare bankruptcy? (stale items → Someday)
-2. Inbox blitz? (rapid keep/dump)
-3. Pick just 3 for this week?
+Let's reset. 3 options:
 
-Which?"
+1. Bankruptcy — stale items → Someday, start clean
+2. Blitz — rapid keep/dump through everything
+3. Focus 3 — pick 3 tasks for this week, ignore rest
+
+Which?
 ```
 
-**Bankruptcy:** Move all 14+ day stale items to Someday
-**Blitz:** Rapid "keep/dump" for each item
-**Focus:** Pick 3, flag them, ignore rest
+**Option 1 — Bankruptcy:**
+```bash
+.claude/skills/gtd/scripts/reminders.sh batch-defer 14
+```
+Then: "Done. [N] items moved to Someday. Inbox next? (y/n)"
 
-## Prevention > Recovery
+**Option 2 — Blitz:**
+Use inbox processing flow but faster — just "keep/dump" for each:
+```
+1/[N]: '[item]' — keep or dump?
+```
+No project detection, no context tagging. Speed is the point.
+
+**Option 3 — Focus 3:**
+```bash
+.claude/skills/gtd/scripts/reminders.sh next
+```
+Show all Next Actions. User picks 3 → flag those → done.
+```
+Flagged your 3. Rest is noise this week.
+```
+
+## After Recovery
+
+Once recovery action is done:
+```
+Better. [summary of what changed]
+
+Process inbox next, or done for now?
+```
+
+## Prevention
 
 | Frequency | Action | Time |
 |-----------|--------|------|
 | Daily | Process inbox | 2 min |
 | Weekly | Review | 5 min |
-| Monthly | Prune lists | 10 min |
+| Monthly | Prune Someday list | 10 min |
 
-Small, frequent, friction-free beats big scheduled reviews.
+Small, frequent, friction-free beats big scheduled reviews. If the user's system keeps going critical, suggest shorter daily check-ins rather than bigger weekly reviews.
