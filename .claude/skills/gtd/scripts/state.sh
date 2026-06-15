@@ -131,9 +131,11 @@ update_weekly_trends() {
     init_state
 
     # Add new values to arrays and keep only last 4
-    yq -i ".trends.weekly_completed += [$completed] | .trends.weekly_completed |= .[-4:]" "$STATE_FILE"
-    yq -i ".trends.weekly_processed += [$processed] | .trends.weekly_processed |= .[-4:]" "$STATE_FILE"
-    yq -i ".trends.weekly_deferred += [$deferred] | .trends.weekly_deferred |= .[-4:]" "$STATE_FILE"
+    yq -i "
+        .trends.weekly_completed += [$completed] | .trends.weekly_completed |= .[-4:] |
+        .trends.weekly_processed += [$processed] | .trends.weekly_processed |= .[-4:] |
+        .trends.weekly_deferred  += [$deferred]  | .trends.weekly_deferred  |= .[-4:]
+    " "$STATE_FILE"
 
     echo "Trends updated"
 }

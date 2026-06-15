@@ -7,38 +7,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ============================================================================
-# ERROR HANDLING
-# ============================================================================
-
-# Run osascript with error handling
-run_applescript() {
-    local result
-    local exit_code
-
-    result=$(osascript -e "$1" 2>&1) && exit_code=0 || exit_code=$?
-
-    if [[ $exit_code -ne 0 ]]; then
-        if [[ "$result" == *"not found"* ]]; then
-            echo "Error: Calendar or event not found" >&2
-            return 1
-        elif [[ "$result" == *"not running"* ]]; then
-            echo "Error: Calendar app not running. Opening..." >&2
-            open -a "Calendar"
-            sleep 1
-            result=$(osascript -e "$1" 2>&1) || {
-                echo "Error: $result" >&2
-                return 1
-            }
-        else
-            echo "Error: $result" >&2
-            return 1
-        fi
-    fi
-
-    echo "$result"
-}
-
-# ============================================================================
 # CALENDAR OPERATIONS
 # ============================================================================
 
@@ -47,216 +15,125 @@ list_calendars() {
 }
 
 # ============================================================================
+# DATE PARSING HELPER
+# ============================================================================
+
+# parse_date_components YYYY-MM-DD
+# Outputs: year month day  (leading zeros stripped)
+parse_date_components() {
+    local s="$1"
+    local year="${s:0:4}"
+    local month=$((10#${s:5:2}))
+    local day=$((10#${s:8:2}))
+    echo "$year $month $day"
+}
+
+# parse_datetime_components YYYY-MM-DD HH:MM
+# Outputs: year month day hour min  (leading zeros stripped)
+parse_datetime_components() {
+    local s="$1"
+    local date_part="${s:0:10}"
+    local time_part="${s:11:5}"
+    local year="${date_part:0:4}"
+    local month=$((10#${date_part:5:2}))
+    local day=$((10#${date_part:8:2}))
+    local hour=$((10#${time_part:0:2}))
+    local min=$((10#${time_part:3:2}))
+    echo "$year $month $day $hour $min"
+}
+
+# ============================================================================
 # READ OPERATIONS
 # ============================================================================
 
+# scan_events — emits 7-field TSV rows for events in a date window.
+#   $1 = AppleScript fragment that sets winStart and winEnd (may use today_start)
+#   $2 = optional AppleScript boolean predicate over event e (default: "true")
+#   $3 = optional calendar name (routes through argv to avoid injection)
+#
+# All user-supplied strings (calendar name) are passed via argv, not interpolated.
+# The window/predicate fragments are script-controlled (numeric offsets), not user input.
+scan_events() {
+    local window="$1"
+    local predicate="${2:-true}"
+    local calendar="${3:-}"
+
+    osascript - "$calendar" <<APPLESCRIPT
+on run argv
+    set theCal to item 1 of argv
+    tell application "Calendar"
+        set today_start to (current date) - (time of (current date))
+        $window
+        set output to ""
+        set cals to calendars
+        if theCal is not "" then set cals to {calendar theCal}
+        repeat with cal in cals
+            set calName to name of cal
+            repeat with e in (every event of cal whose start date >= winStart and start date < winEnd)
+                if ($predicate) then
+                    set eloc to location of e
+                    if eloc is missing value then set eloc to ""
+                    set output to output & (uid of e) & "\t" & (summary of e) & "\t" & (start date of e as string) & "\t" & (end date of e as string) & "\t" & eloc & "\t" & calName & "\t" & (allday event of e) & "\n"
+                end if
+            end repeat
+        end repeat
+        return output
+    end tell
+end run
+APPLESCRIPT
+}
+
 get_today() {
     local calendar="${1:-}"
-
-    if [[ -n "$calendar" ]]; then
-        osascript -e "
-            tell application \"Calendar\"
-                set today to current date
-                set today_start to today - (time of today)
-                set today_end to today_start + 1 * days
-
-                set output to \"\"
-                set cal to calendar \"$calendar\"
-                set evts to (every event of cal whose start date ≥ today_start and start date < today_end)
-                repeat with e in evts
-                    set eid to uid of e
-                    set ename to summary of e
-                    set estart to start date of e
-                    set eend to end date of e
-                    set eloc to location of e
-                    if eloc is missing value then set eloc to \"\"
-                    set enotes to description of e
-                    if enotes is missing value then set enotes to \"\"
-                    set eallday to allday event of e
-                    set output to output & eid & \"\t\" & ename & \"\t\" & (estart as string) & \"\t\" & (eend as string) & \"\t\" & eloc & \"\t\" & enotes & \"\t\" & eallday & \"\n\"
-                end repeat
-                return output
-            end tell
-        "
-    else
-        osascript -e "
-            tell application \"Calendar\"
-                set today to current date
-                set today_start to today - (time of today)
-                set today_end to today_start + 1 * days
-
-                set output to \"\"
-                repeat with cal in calendars
-                    set calName to name of cal
-                    set evts to (every event of cal whose start date ≥ today_start and start date < today_end)
-                    repeat with e in evts
-                        set eid to uid of e
-                        set ename to summary of e
-                        set estart to start date of e
-                        set eend to end date of e
-                        set eloc to location of e
-                        if eloc is missing value then set eloc to \"\"
-                        set enotes to description of e
-                        if enotes is missing value then set enotes to \"\"
-                        set eallday to allday event of e
-                        set output to output & eid & \"\t\" & ename & \"\t\" & (estart as string) & \"\t\" & (eend as string) & \"\t\" & eloc & \"\t\" & calName & \"\t\" & eallday & \"\n\"
-                    end repeat
-                end repeat
-                return output
-            end tell
-        "
-    fi
+    scan_events \
+        'set winStart to today_start
+         set winEnd to today_start + 1 * days' \
+        'true' \
+        "$calendar"
 }
 
 get_tomorrow() {
     local calendar="${1:-}"
-
-    osascript -e "
-        tell application \"Calendar\"
-            set today to current date
-            set today_start to today - (time of today)
-            set tomorrow_start to today_start + 1 * days
-            set tomorrow_end to tomorrow_start + 1 * days
-
-            set output to \"\"
-            set cals to calendars
-            if \"$calendar\" is not \"\" then
-                set cals to {calendar \"$calendar\"}
-            end if
-
-            repeat with cal in cals
-                set calName to name of cal
-                set evts to (every event of cal whose start date ≥ tomorrow_start and start date < tomorrow_end)
-                repeat with e in evts
-                    set eid to uid of e
-                    set ename to summary of e
-                    set estart to start date of e
-                    set eend to end date of e
-                    set eloc to location of e
-                    if eloc is missing value then set eloc to \"\"
-                    set eallday to allday event of e
-                    set output to output & eid & \"\t\" & ename & \"\t\" & (estart as string) & \"\t\" & (eend as string) & \"\t\" & eloc & \"\t\" & calName & \"\t\" & eallday & \"\n\"
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    scan_events \
+        'set winStart to today_start + 1 * days
+         set winEnd to today_start + 2 * days' \
+        'true' \
+        "$calendar"
 }
 
 get_week() {
     local calendar="${1:-}"
-
-    osascript -e "
-        tell application \"Calendar\"
-            set today to current date
-            set today_start to today - (time of today)
-            set week_end to today_start + 7 * days
-
-            set output to \"\"
-            set cals to calendars
-            if \"$calendar\" is not \"\" then
-                set cals to {calendar \"$calendar\"}
-            end if
-
-            repeat with cal in cals
-                set calName to name of cal
-                set evts to (every event of cal whose start date ≥ today_start and start date < week_end)
-                repeat with e in evts
-                    set eid to uid of e
-                    set ename to summary of e
-                    set estart to start date of e
-                    set eend to end date of e
-                    set eloc to location of e
-                    if eloc is missing value then set eloc to \"\"
-                    set eallday to allday event of e
-                    set output to output & eid & \"\t\" & ename & \"\t\" & (estart as string) & \"\t\" & (eend as string) & \"\t\" & eloc & \"\t\" & calName & \"\t\" & eallday & \"\n\"
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    scan_events \
+        'set winStart to today_start
+         set winEnd to today_start + 7 * days' \
+        'true' \
+        "$calendar"
 }
 
 get_date() {
-    local date_str="$1"  # YYYY-MM-DD format
+    local date_str="$1"
     local calendar="${2:-}"
-
-    # Parse date components
-    local year="${date_str:0:4}"
-    local month="${date_str:5:2}"
-    local day="${date_str:8:2}"
-
-    # Remove leading zeros for AppleScript
-    month=$((10#$month))
-    day=$((10#$day))
-
-    osascript -e "
-        tell application \"Calendar\"
-            set targetDate to current date
-            set year of targetDate to $year
-            set month of targetDate to $month
-            set day of targetDate to $day
-            set time of targetDate to 0
-            set nextDay to targetDate + 1 * days
-
-            set output to \"\"
-            set cals to calendars
-            if \"$calendar\" is not \"\" then
-                set cals to {calendar \"$calendar\"}
-            end if
-
-            repeat with cal in cals
-                set calName to name of cal
-                set evts to (every event of cal whose start date ≥ targetDate and start date < nextDay)
-                repeat with e in evts
-                    set eid to uid of e
-                    set ename to summary of e
-                    set estart to start date of e
-                    set eend to end date of e
-                    set eloc to location of e
-                    if eloc is missing value then set eloc to \"\"
-                    set eallday to allday event of e
-                    set output to output & eid & \"\t\" & ename & \"\t\" & (estart as string) & \"\t\" & (eend as string) & \"\t\" & eloc & \"\t\" & calName & \"\t\" & eallday & \"\n\"
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    read -r year month day <<< "$(parse_date_components "$date_str")"
+    scan_events \
+        "set targetDate to current date
+         set year of targetDate to $year
+         set month of targetDate to $month
+         set day of targetDate to $day
+         set time of targetDate to 0
+         set winStart to targetDate
+         set winEnd to targetDate + 1 * days" \
+        'true' \
+        "$calendar"
 }
 
 get_upcoming() {
     local days="${1:-7}"
     local calendar="${2:-}"
-
-    osascript -e "
-        tell application \"Calendar\"
-            set today to current date
-            set today_start to today - (time of today)
-            set end_date to today_start + $days * days
-
-            set output to \"\"
-            set cals to calendars
-            if \"$calendar\" is not \"\" then
-                set cals to {calendar \"$calendar\"}
-            end if
-
-            repeat with cal in cals
-                set calName to name of cal
-                set evts to (every event of cal whose start date ≥ today_start and start date < end_date)
-                repeat with e in evts
-                    set eid to uid of e
-                    set ename to summary of e
-                    set estart to start date of e
-                    set eend to end date of e
-                    set eloc to location of e
-                    if eloc is missing value then set eloc to \"\"
-                    set eallday to allday event of e
-                    set output to output & eid & \"\t\" & ename & \"\t\" & (estart as string) & \"\t\" & (eend as string) & \"\t\" & eloc & \"\t\" & calName & \"\t\" & eallday & \"\n\"
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    scan_events \
+        "set winStart to today_start
+         set winEnd to today_start + $days * days" \
+        'true' \
+        "$calendar"
 }
 
 # ============================================================================
@@ -268,41 +145,35 @@ search_events() {
     local calendar="${2:-}"
     local days="${3:-30}"
 
-    osascript -e "
-        tell application \"Calendar\"
-            set today to current date
-            set today_start to today - (time of today)
-            set end_date to today_start + $days * days
-
-            set output to \"\"
-            set searchTerm to \"$query\"
-            set cals to calendars
-            if \"$calendar\" is not \"\" then
-                set cals to {calendar \"$calendar\"}
-            end if
-
-            repeat with cal in cals
-                set calName to name of cal
-                set evts to (every event of cal whose start date ≥ today_start and start date < end_date)
-                repeat with e in evts
-                    set ename to summary of e
-                    set enotes to description of e
-                    if enotes is missing value then set enotes to \"\"
-
-                    if ename contains searchTerm or enotes contains searchTerm then
-                        set eid to uid of e
-                        set estart to start date of e
-                        set eend to end date of e
-                        set eloc to location of e
-                        if eloc is missing value then set eloc to \"\"
-                        set eallday to allday event of e
-                        set output to output & eid & \"\t\" & ename & \"\t\" & (estart as string) & \"\t\" & (eend as string) & \"\t\" & eloc & \"\t\" & calName & \"\t\" & eallday & \"\n\"
-                    end if
-                end repeat
+    # query is user input — passed via argv to avoid AppleScript injection
+    osascript - "$query" "$calendar" <<APPLESCRIPT
+on run argv
+    set theQuery to item 1 of argv
+    set theCal to item 2 of argv
+    tell application "Calendar"
+        set today_start to (current date) - (time of (current date))
+        set winStart to today_start
+        set winEnd to today_start + $days * days
+        set output to ""
+        set cals to calendars
+        if theCal is not "" then set cals to {calendar theCal}
+        repeat with cal in cals
+            set calName to name of cal
+            repeat with e in (every event of cal whose start date >= winStart and start date < winEnd)
+                set ename to summary of e
+                set enotes to description of e
+                if enotes is missing value then set enotes to ""
+                if ename contains theQuery or enotes contains theQuery then
+                    set eloc to location of e
+                    if eloc is missing value then set eloc to ""
+                    set output to output & (uid of e) & "\t" & ename & "\t" & (start date of e as string) & "\t" & (end date of e as string) & "\t" & eloc & "\t" & calName & "\t" & (allday event of e) & "\n"
+                end if
             end repeat
-            return output
-        end tell
-    "
+        end repeat
+        return output
+    end tell
+end run
+APPLESCRIPT
 }
 
 # ============================================================================
@@ -317,58 +188,39 @@ add_event() {
     local location="${5:-}"
     local notes="${6:-}"
 
-    # Parse start date/time
-    local start_date="${start_datetime:0:10}"
-    local start_time="${start_datetime:11:5}"
-    local start_year="${start_date:0:4}"
-    local start_month="${start_date:5:2}"
-    local start_day="${start_date:8:2}"
-    local start_hour="${start_time:0:2}"
-    local start_min="${start_time:3:2}"
+    read -r sy sm sd sh smin <<< "$(parse_datetime_components "$start_datetime")"
+    read -r ey em ed eh emin <<< "$(parse_datetime_components "$end_datetime")"
 
-    # Parse end date/time
-    local end_date="${end_datetime:0:10}"
-    local end_time="${end_datetime:11:5}"
-    local end_year="${end_date:0:4}"
-    local end_month="${end_date:5:2}"
-    local end_day="${end_date:8:2}"
-    local end_hour="${end_time:0:2}"
-    local end_min="${end_time:3:2}"
+    osascript - "$title" "$location" "$notes" "$calendar" <<APPLESCRIPT
+on run argv
+    set theTitle to item 1 of argv
+    set theLoc to item 2 of argv
+    set theNotes to item 3 of argv
+    set theCal to item 4 of argv
+    tell application "Calendar"
+        set startDate to current date
+        set year of startDate to $sy
+        set month of startDate to $sm
+        set day of startDate to $sd
+        set hours of startDate to $sh
+        set minutes of startDate to $smin
+        set seconds of startDate to 0
 
-    # Remove leading zeros
-    start_month=$((10#$start_month))
-    start_day=$((10#$start_day))
-    start_hour=$((10#$start_hour))
-    start_min=$((10#$start_min))
-    end_month=$((10#$end_month))
-    end_day=$((10#$end_day))
-    end_hour=$((10#$end_hour))
-    end_min=$((10#$end_min))
+        set endDate to current date
+        set year of endDate to $ey
+        set month of endDate to $em
+        set day of endDate to $ed
+        set hours of endDate to $eh
+        set minutes of endDate to $emin
+        set seconds of endDate to 0
 
-    osascript -e "
-        tell application \"Calendar\"
-            set startDate to current date
-            set year of startDate to $start_year
-            set month of startDate to $start_month
-            set day of startDate to $start_day
-            set hours of startDate to $start_hour
-            set minutes of startDate to $start_min
-            set seconds of startDate to 0
-
-            set endDate to current date
-            set year of endDate to $end_year
-            set month of endDate to $end_month
-            set day of endDate to $end_day
-            set hours of endDate to $end_hour
-            set minutes of endDate to $end_min
-            set seconds of endDate to 0
-
-            tell calendar \"$calendar\"
-                set newEvent to make new event with properties {summary:\"$title\", start date:startDate, end date:endDate, location:\"$location\", description:\"$notes\"}
-                return uid of newEvent
-            end tell
+        tell calendar theCal
+            set newEvent to make new event with properties {summary:theTitle, start date:startDate, end date:endDate, location:theLoc, description:theNotes}
+            return uid of newEvent
         end tell
-    "
+    end tell
+end run
+APPLESCRIPT
 }
 
 add_allday_event() {
@@ -377,43 +229,47 @@ add_allday_event() {
     local calendar="${3:-Personal}"
     local notes="${4:-}"
 
-    local year="${date_str:0:4}"
-    local month="${date_str:5:2}"
-    local day="${date_str:8:2}"
+    read -r year month day <<< "$(parse_date_components "$date_str")"
 
-    month=$((10#$month))
-    day=$((10#$day))
+    osascript - "$title" "$notes" "$calendar" <<APPLESCRIPT
+on run argv
+    set theTitle to item 1 of argv
+    set theNotes to item 2 of argv
+    set theCal to item 3 of argv
+    tell application "Calendar"
+        set eventDate to current date
+        set year of eventDate to $year
+        set month of eventDate to $month
+        set day of eventDate to $day
+        set time of eventDate to 0
 
-    osascript -e "
-        tell application \"Calendar\"
-            set eventDate to current date
-            set year of eventDate to $year
-            set month of eventDate to $month
-            set day of eventDate to $day
-            set time of eventDate to 0
+        set endDate to eventDate + 1 * days
 
-            set endDate to eventDate + 1 * days
-
-            tell calendar \"$calendar\"
-                set newEvent to make new event with properties {summary:\"$title\", start date:eventDate, end date:endDate, allday event:true, description:\"$notes\"}
-                return uid of newEvent
-            end tell
+        tell calendar theCal
+            set newEvent to make new event with properties {summary:theTitle, start date:eventDate, end date:endDate, allday event:true, description:theNotes}
+            return uid of newEvent
         end tell
-    "
+    end tell
+end run
+APPLESCRIPT
 }
 
 delete_event() {
     local event_id="$1"
     local calendar="$2"
 
-    osascript -e "
-        tell application \"Calendar\"
-            tell calendar \"$calendar\"
-                set evt to first event whose uid is \"$event_id\"
-                delete evt
-            end tell
+    osascript - "$event_id" "$calendar" <<'APPLESCRIPT'
+on run argv
+    set theId to item 1 of argv
+    set theCal to item 2 of argv
+    tell application "Calendar"
+        tell calendar theCal
+            set evt to first event whose uid is theId
+            delete evt
         end tell
-    "
+    end tell
+end run
+APPLESCRIPT
 }
 
 # ============================================================================
@@ -424,7 +280,8 @@ find_gaps() {
     local min_minutes="${1:-30}"
     local calendar="${2:-}"
 
-    osascript -e "
+    # Calendar name passed via env (system attribute) to avoid AppleScript injection
+    GTD_CAL="$calendar" osascript -e "
         tell application \"Calendar\"
             set today to current date
             set today_start to today - (time of today)
@@ -435,9 +292,8 @@ find_gaps() {
             -- Collect all events for today
             set allEvents to {}
             set cals to calendars
-            if \"$calendar\" is not \"\" then
-                set cals to {calendar \"$calendar\"}
-            end if
+            set theCal to (system attribute \"GTD_CAL\")
+            if theCal is not \"\" then set cals to {calendar theCal}
 
             repeat with cal in cals
                 set evts to (every event of cal whose start date ≥ workStart and start date < workEnd and allday event is false)
@@ -496,7 +352,8 @@ get_free_time() {
     # Total free time today (in work hours)
     local calendar="${1:-}"
 
-    osascript -e "
+    # Calendar name passed via env (system attribute) to avoid AppleScript injection
+    GTD_CAL="$calendar" osascript -e "
         tell application \"Calendar\"
             set today to current date
             set today_start to today - (time of today)
@@ -505,9 +362,8 @@ get_free_time() {
 
             set totalBusy to 0
             set cals to calendars
-            if \"$calendar\" is not \"\" then
-                set cals to {calendar \"$calendar\"}
-            end if
+            set theCal to (system attribute \"GTD_CAL\")
+            if theCal is not \"\" then set cals to {calendar theCal}
 
             repeat with cal in cals
                 set evts to (every event of cal whose start date ≥ workStart and start date < workEnd and allday event is false)

@@ -5,40 +5,6 @@
 set -e
 
 # ============================================================================
-# ERROR HANDLING
-# ============================================================================
-
-# Run osascript with error handling
-run_applescript() {
-    local result
-    local exit_code
-
-    result=$(osascript -e "$1" 2>&1) && exit_code=0 || exit_code=$?
-
-    if [[ $exit_code -ne 0 ]]; then
-        # Check for common errors
-        if [[ "$result" == *"not found"* ]]; then
-            echo "Error: List or reminder not found" >&2
-            return 1
-        elif [[ "$result" == *"not running"* ]]; then
-            echo "Error: Reminders app not running. Opening..." >&2
-            open -a "Reminders"
-            sleep 1
-            # Retry once
-            result=$(osascript -e "$1" 2>&1) || {
-                echo "Error: $result" >&2
-                return 1
-            }
-        else
-            echo "Error: $result" >&2
-            return 1
-        fi
-    fi
-
-    echo "$result"
-}
-
-# ============================================================================
 # UNDO SUPPORT
 # ============================================================================
 
@@ -92,12 +58,15 @@ do_undo() {
             ;;
         "complete")
             # Uncomplete
-            osascript -e "
-                tell application \"Reminders\"
-                    set r to reminder id \"$id\"
-                    set completed of r to false
-                end tell
-            "
+            osascript - "$id" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set completed of r to false
+    end tell
+end run
+APPLESCRIPT
             echo "Undone: marked incomplete"
             ;;
         "delete")
@@ -227,6 +196,72 @@ add_reminder_natural() {
 }
 
 # ============================================================================
+# SCAN HELPER — shared scaffolding for all-lists reminder queries
+# ============================================================================
+#
+# scan_reminders COMPLETED_FILTER PREDICATE_FRAG ROW_FRAG [user_arg ...]
+#
+# $1 — AppleScript whose-clause fragment appended to "reminders of lst whose"
+#      (e.g. "completed is false", "completed is true")
+# $2 — AppleScript boolean expression (true/false) evaluated per reminder r.
+#      May reference: r, rid, rname, rbody, rdue, rdueStr, rflagged, rlist,
+#      theQuery (= the first user arg). Use "true" to include every reminder
+#      passing the whose-clause.
+# $3 — AppleScript expression appended to output per matching r (the TSV row).
+#      Must end with & "\n".  Same vars available as above.
+# $4+ — optional extra argv items passed into the script as argv items 3, 4, …
+#        (argv item 1 = $1, argv item 2 = $2 are unused at runtime; the real
+#         predicate/row are baked in at heredoc generation time as script-
+#         controlled fragments — NOT user input).
+#        The first extra arg becomes theQuery inside AppleScript.
+#
+# NOTE: predicate/row fragments are script-controlled strings (not user input)
+#       and are safely interpolated via bash into the heredoc body.
+#       User-supplied values are passed via argv (items 3+).
+#
+scan_reminders() {
+    local whose_filter="$1"
+    local predicate_frag="$2"
+    local row_frag="$3"
+    shift 3
+    # remaining "$@" are user-supplied args forwarded via osascript argv
+
+    osascript - "$@" <<APPLESCRIPT
+on run argv
+    -- argv item 1+ are user-supplied strings (e.g. search query, context tag)
+    set theQuery to ""
+    if (count of argv) >= 1 then set theQuery to item 1 of argv
+
+    tell application "Reminders"
+        set output to ""
+        repeat with lst in lists
+            set rems to (reminders of lst whose ${whose_filter})
+            repeat with r in rems
+                set rid to id of r
+                set rname to name of r
+                set rbody to body of r
+                if rbody is missing value then set rbody to ""
+                set rdue to due date of r
+                if rdue is missing value then
+                    set rdueStr to ""
+                else
+                    set rdueStr to (rdue as string)
+                end if
+                set rflagged to flagged of r
+                set rlist to name of container of r
+
+                if ${predicate_frag} then
+                    set output to output & ${row_frag}
+                end if
+            end repeat
+        end repeat
+        return output
+    end tell
+end run
+APPLESCRIPT
+}
+
+# ============================================================================
 # LIST OPERATIONS
 # ============================================================================
 
@@ -238,13 +273,16 @@ ensure_gtd_lists() {
     # Create GTD lists if they don't exist
     local lists=("Inbox" "Next Actions" "Waiting For" "Someday" "Projects")
     for list_name in "${lists[@]}"; do
-        osascript -e "
-            tell application \"Reminders\"
-                if not (exists list \"$list_name\") then
-                    make new list with properties {name:\"$list_name\"}
-                end if
-            end tell
-        " 2>/dev/null || true
+        osascript - "$list_name" <<'APPLESCRIPT' 2>/dev/null || true
+on run argv
+    set theList to item 1 of argv
+    tell application "Reminders"
+        if not (exists list theList) then
+            make new list with properties {name:theList}
+        end if
+    end tell
+end run
+APPLESCRIPT
     done
     echo "GTD lists ready"
 }
@@ -255,145 +293,138 @@ ensure_gtd_lists() {
 
 get_list() {
     local list_name="${1:-Inbox}"
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            set rems to (reminders of list \"$list_name\" whose completed is false)
-            repeat with r in rems
-                set rid to id of r
-                set rname to name of r
-                set rbody to body of r
-                if rbody is missing value then set rbody to \"\"
-                set rdue to due date of r
-                if rdue is missing value then
-                    set rdueStr to \"\"
-                else
-                    set rdueStr to (rdue as string)
-                end if
-                set rflagged to flagged of r
-                set rpriority to priority of r
-                set output to output & rid & \"\t\" & rname & \"\t\" & rbody & \"\t\" & rdueStr & \"\t\" & rflagged & \"\t\" & rpriority & \"\n\"
-            end repeat
-            return output
-        end tell
-    "
-}
-
-get_inbox() {
-    get_list "Inbox"
-}
-
-get_next_actions() {
-    get_list "Next Actions"
-}
-
-get_waiting() {
-    get_list "Waiting For"
-}
-
-get_someday() {
-    get_list "Someday"
-}
-
-get_projects() {
-    get_list "Projects"
+    # Single-list scan — does NOT include a list-name column (different schema)
+    osascript - "$list_name" <<'APPLESCRIPT'
+on run argv
+    set theList to item 1 of argv
+    tell application "Reminders"
+        set output to ""
+        set rems to (reminders of list theList whose completed is false)
+        repeat with r in rems
+            set rid to id of r
+            set rname to name of r
+            set rbody to body of r
+            if rbody is missing value then set rbody to ""
+            set rdue to due date of r
+            if rdue is missing value then
+                set rdueStr to ""
+            else
+                set rdueStr to (rdue as string)
+            end if
+            set rflagged to flagged of r
+            set rpriority to priority of r
+            set output to output & rid & "\t" & rname & "\t" & rbody & "\t" & rdueStr & "\t" & rflagged & "\t" & rpriority & "\n"
+        end repeat
+        return output
+    end tell
+end run
+APPLESCRIPT
 }
 
 get_today() {
     # Get reminders due today or flagged
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            set today to current date
-            set today's time to 0
-            set tomorrow to today + 1 * days
+    # Uses a complex conditional that can't be expressed as a simple whose-clause,
+    # so it runs its own osascript with the shared field-prep pattern.
+    osascript <<'APPLESCRIPT'
+tell application "Reminders"
+    set output to ""
+    set today to current date
+    set today's time to 0
+    set tomorrow to today + 1 * days
 
-            repeat with lst in lists
-                set rems to (reminders of lst whose completed is false)
-                repeat with r in rems
-                    set rdue to due date of r
-                    set rflagged to flagged of r
-                    set include to false
+    repeat with lst in lists
+        set rems to (reminders of lst whose completed is false)
+        repeat with r in rems
+            set rdue to due date of r
+            set rflagged to flagged of r
+            set include to false
 
-                    if rflagged then
-                        set include to true
-                    else if rdue is not missing value then
-                        if rdue ≥ today and rdue < tomorrow then
-                            set include to true
-                        end if
-                    end if
+            if rflagged then
+                set include to true
+            else if rdue is not missing value then
+                if rdue ≥ today and rdue < tomorrow then
+                    set include to true
+                end if
+            end if
 
-                    if include then
-                        set rid to id of r
-                        set rname to name of r
-                        set rbody to body of r
-                        if rbody is missing value then set rbody to \"\"
-                        set rlist to name of container of r
-                        if rdue is missing value then
-                            set rdueStr to \"\"
-                        else
-                            set rdueStr to (rdue as string)
-                        end if
-                        set output to output & rid & \"\t\" & rname & \"\t\" & rbody & \"\t\" & rdueStr & \"\t\" & rflagged & \"\t\" & rlist & \"\n\"
-                    end if
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+            if include then
+                set rid to id of r
+                set rname to name of r
+                set rbody to body of r
+                if rbody is missing value then set rbody to ""
+                set rlist to name of container of r
+                if rdue is missing value then
+                    set rdueStr to ""
+                else
+                    set rdueStr to (rdue as string)
+                end if
+                set output to output & rid & "\t" & rname & "\t" & rbody & "\t" & rdueStr & "\t" & rflagged & "\t" & rlist & "\n"
+            end if
+        end repeat
+    end repeat
+    return output
+end tell
+APPLESCRIPT
 }
 
 get_upcoming() {
-    # Get reminders with due dates in the future
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            set today to current date
-            set today's time to 0
+    # Columns: id, name, body, due, listName
+    # Uses 'today' date arithmetic — kept as own script since scan_reminders
+    # does not define the 'today' variable.
+    osascript <<'APPLESCRIPT'
+tell application "Reminders"
+    set output to ""
+    set today to current date
+    set today's time to 0
 
-            repeat with lst in lists
-                set rems to (reminders of lst whose completed is false)
-                repeat with r in rems
-                    set rdue to due date of r
-                    if rdue is not missing value and rdue > today then
-                        set rid to id of r
-                        set rname to name of r
-                        set rbody to body of r
-                        if rbody is missing value then set rbody to \"\"
-                        set rlist to name of container of r
-                        set rdueStr to (rdue as string)
-                        set output to output & rid & \"\t\" & rname & \"\t\" & rbody & \"\t\" & rdueStr & \"\t\" & rlist & \"\n\"
-                    end if
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    repeat with lst in lists
+        set rems to (reminders of lst whose completed is false)
+        repeat with r in rems
+            set rdue to due date of r
+            if rdue is not missing value and rdue > today then
+                set rid to id of r
+                set rname to name of r
+                set rbody to body of r
+                if rbody is missing value then set rbody to ""
+                set rlist to name of container of r
+                set rdueStr to (rdue as string)
+                set output to output & rid & "\t" & rname & "\t" & rbody & "\t" & rdueStr & "\t" & rlist & "\n"
+            end if
+        end repeat
+    end repeat
+    return output
+end tell
+APPLESCRIPT
 }
 
 get_completed() {
     local days="${1:-7}"
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            set cutoff to (current date) - $days * days
+    # Columns: id, name, completionDate, listName
+    # Uses completed is true + cutoff filter; cutoff is a script-controlled integer.
+    osascript - "$days" <<'APPLESCRIPT'
+on run argv
+    set theDays to (item 1 of argv) as integer
+    tell application "Reminders"
+        set output to ""
+        set cutoff to (current date) - theDays * days
 
-            repeat with lst in lists
-                set rems to (reminders of lst whose completed is true)
-                repeat with r in rems
-                    set cdate to completion date of r
-                    if cdate is not missing value and cdate > cutoff then
-                        set rid to id of r
-                        set rname to name of r
-                        set rlist to name of container of r
-                        set cdateStr to (cdate as string)
-                        set output to output & rid & \"\t\" & rname & \"\t\" & cdateStr & \"\t\" & rlist & \"\n\"
-                    end if
-                end repeat
+        repeat with lst in lists
+            set rems to (reminders of lst whose completed is true)
+            repeat with r in rems
+                set cdate to completion date of r
+                if cdate is not missing value and cdate > cutoff then
+                    set rid to id of r
+                    set rname to name of r
+                    set rlist to name of container of r
+                    set cdateStr to (cdate as string)
+                    set output to output & rid & "\t" & rname & "\t" & cdateStr & "\t" & rlist & "\n"
+                end if
             end repeat
-            return output
-        end tell
-    "
+        end repeat
+        return output
+    end tell
+end run
+APPLESCRIPT
 }
 
 # ============================================================================
@@ -402,84 +433,30 @@ get_completed() {
 
 search_reminders() {
     local query="$1"
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            set searchTerm to \"$query\"
-
-            repeat with lst in lists
-                set rems to reminders of lst whose completed is false
-                repeat with r in rems
-                    set rname to name of r
-                    set rbody to body of r
-                    if rbody is missing value then set rbody to \"\"
-
-                    if rname contains searchTerm or rbody contains searchTerm then
-                        set rid to id of r
-                        set rlist to name of container of r
-                        set rdue to due date of r
-                        if rdue is missing value then
-                            set rdueStr to \"\"
-                        else
-                            set rdueStr to (rdue as string)
-                        end if
-                        set rflagged to flagged of r
-                        set output to output & rid & \"\t\" & rname & \"\t\" & rbody & \"\t\" & rdueStr & \"\t\" & rflagged & \"\t\" & rlist & \"\n\"
-                    end if
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    # Columns: id, name, body, due, flagged, listName
+    scan_reminders \
+        "completed is false" \
+        '(rname contains theQuery) or (rbody contains theQuery)' \
+        'rid & "\t" & rname & "\t" & rbody & "\t" & rdueStr & "\t" & rflagged & "\t" & rlist & "\n"' \
+        "$query"
 }
 
 search_by_priority() {
     local priority="$1"  # 0=none, 1=high, 5=medium, 9=low
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-
-            repeat with lst in lists
-                set rems to reminders of lst whose completed is false and priority is $priority
-                repeat with r in rems
-                    set rid to id of r
-                    set rname to name of r
-                    set rbody to body of r
-                    if rbody is missing value then set rbody to \"\"
-                    set rlist to name of container of r
-                    set output to output & rid & \"\t\" & rname & \"\t\" & rbody & \"\t\" & rlist & \"\n\"
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    # Columns: id, name, body, listName
+    # priority is a script-controlled integer — safe to interpolate
+    scan_reminders \
+        "completed is false and priority is ${priority}" \
+        "true" \
+        'rid & "\t" & rname & "\t" & rbody & "\t" & rlist & "\n"'
 }
 
 search_flagged() {
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-
-            repeat with lst in lists
-                set rems to reminders of lst whose completed is false and flagged is true
-                repeat with r in rems
-                    set rid to id of r
-                    set rname to name of r
-                    set rbody to body of r
-                    if rbody is missing value then set rbody to \"\"
-                    set rlist to name of container of r
-                    set rdue to due date of r
-                    if rdue is missing value then
-                        set rdueStr to \"\"
-                    else
-                        set rdueStr to (rdue as string)
-                    end if
-                    set output to output & rid & \"\t\" & rname & \"\t\" & rbody & \"\t\" & rdueStr & \"\t\" & rlist & \"\n\"
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    # Columns: id, name, body, due, listName
+    scan_reminders \
+        "completed is false and flagged is true" \
+        "true" \
+        'rid & "\t" & rname & "\t" & rbody & "\t" & rdueStr & "\t" & rlist & "\n"'
 }
 
 # ============================================================================
@@ -494,24 +471,45 @@ add_reminder() {
     local flagged="${5:-false}"
     local priority="${6:-0}"  # 0=none, 1=high, 5=medium, 9=low
 
-    local due_clause=""
-    if [[ -n "$due_date" ]]; then
-        due_clause=", due date:date \"$due_date\""
-    fi
-
     local flagged_bool="false"
     if [[ "$flagged" == "true" ]]; then
         flagged_bool="true"
     fi
 
-    osascript -e "
-        tell application \"Reminders\"
-            tell list \"$list_name\"
-                set newReminder to make new reminder with properties {name:\"$title\", body:\"$notes\", flagged:$flagged_bool, priority:$priority$due_clause}
-                return id of newReminder
-            end tell
+    if [[ -n "$due_date" ]]; then
+        osascript - "$title" "$list_name" "$notes" "$due_date" "$flagged_bool" "$priority" <<'APPLESCRIPT'
+on run argv
+    set theTitle to item 1 of argv
+    set theList to item 2 of argv
+    set theNotes to item 3 of argv
+    set theDue to item 4 of argv
+    set theFlagged to (item 5 of argv) as boolean
+    set thePriority to (item 6 of argv) as integer
+    tell application "Reminders"
+        tell list theList
+            set newReminder to make new reminder with properties {name:theTitle, body:theNotes, flagged:theFlagged, priority:thePriority, due date:date theDue}
+            return id of newReminder
         end tell
-    "
+    end tell
+end run
+APPLESCRIPT
+    else
+        osascript - "$title" "$list_name" "$notes" "$flagged_bool" "$priority" <<'APPLESCRIPT'
+on run argv
+    set theTitle to item 1 of argv
+    set theList to item 2 of argv
+    set theNotes to item 3 of argv
+    set theFlagged to (item 4 of argv) as boolean
+    set thePriority to (item 5 of argv) as integer
+    tell application "Reminders"
+        tell list theList
+            set newReminder to make new reminder with properties {name:theTitle, body:theNotes, flagged:theFlagged, priority:thePriority}
+            return id of newReminder
+        end tell
+    end tell
+end run
+APPLESCRIPT
+    fi
 }
 
 update_reminder() {
@@ -521,44 +519,61 @@ update_reminder() {
 
     case "$property" in
         "name"|"body")
-            osascript -e "
-                tell application \"Reminders\"
-                    set r to reminder id \"$reminder_id\"
-                    set $property of r to \"$value\"
-                end tell
-            "
+            osascript - "$reminder_id" "$value" <<APPLESCRIPT
+on run argv
+    set theID to item 1 of argv
+    set theValue to item 2 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set ${property} of r to theValue
+    end tell
+end run
+APPLESCRIPT
             ;;
         "flagged"|"completed")
-            osascript -e "
-                tell application \"Reminders\"
-                    set r to reminder id \"$reminder_id\"
-                    set $property of r to $value
-                end tell
-            "
+            osascript - "$reminder_id" <<APPLESCRIPT
+on run argv
+    set theID to item 1 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set ${property} of r to ${value}
+    end tell
+end run
+APPLESCRIPT
             ;;
         "priority")
-            osascript -e "
-                tell application \"Reminders\"
-                    set r to reminder id \"$reminder_id\"
-                    set priority of r to $value
-                end tell
-            "
+            osascript - "$reminder_id" <<APPLESCRIPT
+on run argv
+    set theID to item 1 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set priority of r to ${value}
+    end tell
+end run
+APPLESCRIPT
             ;;
         "due")
             if [[ -z "$value" || "$value" == "none" ]]; then
-                osascript -e "
-                    tell application \"Reminders\"
-                        set r to reminder id \"$reminder_id\"
-                        set due date of r to missing value
-                    end tell
-                "
+                osascript - "$reminder_id" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set due date of r to missing value
+    end tell
+end run
+APPLESCRIPT
             else
-                osascript -e "
-                    tell application \"Reminders\"
-                        set r to reminder id \"$reminder_id\"
-                        set due date of r to date \"$value\"
-                    end tell
-                "
+                osascript - "$reminder_id" "$value" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    set theDate to item 2 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set due date of r to date theDate
+    end tell
+end run
+APPLESCRIPT
             fi
             ;;
     esac
@@ -569,20 +584,29 @@ move_reminder() {
     local target_list="$2"
 
     # Get current list for undo
-    local current_list=$(osascript -e "
-        tell application \"Reminders\"
-            set r to reminder id \"$reminder_id\"
-            return name of container of r
-        end tell
-    " 2>/dev/null)
+    local current_list
+    current_list=$(osascript - "$reminder_id" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        return name of container of r
+    end tell
+end run
+APPLESCRIPT
+    ) || true
 
-    osascript -e "
-        tell application \"Reminders\"
-            set r to reminder id \"$reminder_id\"
-            set targetList to list \"$target_list\"
-            move r to targetList
-        end tell
-    "
+    osascript - "$reminder_id" "$target_list" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    set theList to item 2 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set targetList to list theList
+        move r to targetList
+    end tell
+end run
+APPLESCRIPT
 
     # Save for undo
     if [[ -n "$current_list" ]]; then
@@ -596,12 +620,15 @@ complete_reminder() {
     # Save for undo before completing
     save_undo "complete" "$reminder_id" ""
 
-    osascript -e "
-        tell application \"Reminders\"
-            set r to reminder id \"$reminder_id\"
-            set completed of r to true
-        end tell
-    "
+    osascript - "$reminder_id" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set completed of r to true
+    end tell
+end run
+APPLESCRIPT
 }
 
 # Safe delete with confirmation message
@@ -610,23 +637,31 @@ delete_reminder() {
     local force="${2:-false}"
 
     # Get name for confirmation
-    local name=$(osascript -e "
-        tell application \"Reminders\"
-            set r to reminder id \"$reminder_id\"
-            return name of r
-        end tell
-    " 2>/dev/null)
+    local name
+    name=$(osascript - "$reminder_id" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        return name of r
+    end tell
+end run
+APPLESCRIPT
+    ) || true
 
     if [[ "$force" != "true" && "$force" != "-f" ]]; then
         echo "Deleting: '$name' (cannot be undone)"
     fi
 
-    osascript -e "
-        tell application \"Reminders\"
-            set r to reminder id \"$reminder_id\"
-            delete r
-        end tell
-    "
+    osascript - "$reminder_id" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        delete r
+    end tell
+end run
+APPLESCRIPT
 
     echo "Deleted: $name"
 }
@@ -649,25 +684,28 @@ process_to_next() {
     [[ -n "$duration" ]] && tags="$tags $duration"
     tags=$(echo "$tags" | xargs)  # trim
 
-    osascript -e "
-        tell application \"Reminders\"
-            set r to reminder id \"$reminder_id\"
-            set currentBody to body of r
-            if currentBody is missing value then set currentBody to \"\"
+    osascript - "$reminder_id" "$tags" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    set tagLine to item 2 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set currentBody to body of r
+        if currentBody is missing value then set currentBody to ""
 
-            set tagLine to \"$tags\"
-            if tagLine is not \"\" then
-                if currentBody is \"\" then
-                    set body of r to tagLine
-                else
-                    set body of r to tagLine & return & currentBody
-                end if
+        if tagLine is not "" then
+            if currentBody is "" then
+                set body of r to tagLine
+            else
+                set body of r to tagLine & return & currentBody
             end if
+        end if
 
-            set targetList to list \"Next Actions\"
-            move r to targetList
-        end tell
-    "
+        set targetList to list "Next Actions"
+        move r to targetList
+    end tell
+end run
+APPLESCRIPT
 }
 
 # Move to Waiting For with who/what info
@@ -675,23 +713,27 @@ delegate_reminder() {
     local reminder_id="$1"
     local waiting_for="$2"  # Person or thing waiting for
 
-    osascript -e "
-        tell application \"Reminders\"
-            set r to reminder id \"$reminder_id\"
-            set currentBody to body of r
-            if currentBody is missing value then set currentBody to \"\"
+    osascript - "$reminder_id" "$waiting_for" <<'APPLESCRIPT'
+on run argv
+    set theID to item 1 of argv
+    set theWaiting to item 2 of argv
+    tell application "Reminders"
+        set r to reminder id theID
+        set currentBody to body of r
+        if currentBody is missing value then set currentBody to ""
 
-            set waitingLine to \"@waiting: $waiting_for\"
-            if currentBody is \"\" then
-                set body of r to waitingLine
-            else
-                set body of r to waitingLine & return & currentBody
-            end if
+        set waitingLine to "@waiting: " & theWaiting
+        if currentBody is "" then
+            set body of r to waitingLine
+        else
+            set body of r to waitingLine & return & currentBody
+        end if
 
-            set targetList to list \"Waiting For\"
-            move r to targetList
-        end tell
-    "
+        set targetList to list "Waiting For"
+        move r to targetList
+    end tell
+end run
+APPLESCRIPT
 }
 
 # Move to Someday
@@ -733,147 +775,133 @@ batch_defer_stale() {
 # Get items by context tag (searches in notes)
 get_by_context() {
     local context="$1"  # @home, @office, etc.
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-
-            repeat with lst in lists
-                set rems to reminders of lst whose completed is false
-                repeat with r in rems
-                    set rbody to body of r
-                    if rbody is not missing value and rbody contains \"$context\" then
-                        set rid to id of r
-                        set rname to name of r
-                        set rlist to name of container of r
-                        set rdue to due date of r
-                        if rdue is missing value then
-                            set rdueStr to \"\"
-                        else
-                            set rdueStr to (rdue as string)
-                        end if
-                        set output to output & rid & \"\t\" & rname & \"\t\" & rbody & \"\t\" & rdueStr & \"\t\" & rlist & \"\n\"
-                    end if
-                end repeat
-            end repeat
-            return output
-        end tell
-    "
+    # Columns: id, name, body, due, listName
+    scan_reminders \
+        "completed is false" \
+        "rbody is not missing value and rbody contains theQuery" \
+        'rid & "\t" & rname & "\t" & rbody & "\t" & rdueStr & "\t" & rlist & "\n"' \
+        "$context"
 }
 
 # Get stale items (no activity in X days)
 get_stale() {
     local days="${1:-7}"
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            set cutoff to (current date) - $days * days
+    # Columns: id, name, modDate, listName
+    # days is a script-controlled integer — safe to interpolate
+    osascript - "$days" <<'APPLESCRIPT'
+on run argv
+    set theDays to (item 1 of argv) as integer
+    tell application "Reminders"
+        set output to ""
+        set cutoff to (current date) - theDays * days
 
-            repeat with lst in lists
-                set rems to reminders of lst whose completed is false
-                repeat with r in rems
-                    set mdate to modification date of r
-                    if mdate < cutoff then
-                        set rid to id of r
-                        set rname to name of r
-                        set rlist to name of container of r
-                        set mdateStr to (mdate as string)
-                        set output to output & rid & \"\t\" & rname & \"\t\" & mdateStr & \"\t\" & rlist & \"\n\"
-                    end if
-                end repeat
+        repeat with lst in lists
+            set rems to (reminders of lst whose completed is false)
+            repeat with r in rems
+                set mdate to modification date of r
+                if mdate < cutoff then
+                    set rid to id of r
+                    set rname to name of r
+                    set rlist to name of container of r
+                    set mdateStr to (mdate as string)
+                    set output to output & rid & "\t" & rname & "\t" & mdateStr & "\t" & rlist & "\n"
+                end if
             end repeat
-            return output
-        end tell
-    "
+        end repeat
+        return output
+    end tell
+end run
+APPLESCRIPT
 }
 
 # Check project health - projects without recent next actions
 get_orphan_projects() {
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            set projectList to list \"Projects\"
-            set nextList to list \"Next Actions\"
+    osascript <<'APPLESCRIPT'
+tell application "Reminders"
+    set output to ""
+    set projectList to list "Projects"
+    set nextList to list "Next Actions"
 
-            set projects to reminders of projectList whose completed is false
-            repeat with p in projects
-                set pname to name of p
-                set pid to id of p
-                set pnotes to body of p
-                if pnotes is missing value then set pnotes to \"\"
+    set projects to reminders of projectList whose completed is false
+    repeat with p in projects
+        set pname to name of p
+        set pid to id of p
+        set pnotes to body of p
+        if pnotes is missing value then set pnotes to ""
 
-                -- Search for related next actions (by name match or tag)
-                set hasAction to false
-                set nextActions to reminders of nextList whose completed is false
-                repeat with na in nextActions
-                    set naName to name of na
-                    set naNotes to body of na
-                    if naNotes is missing value then set naNotes to \"\"
+        -- Search for related next actions (by name match or tag)
+        set hasAction to false
+        set nextActions to reminders of nextList whose completed is false
+        repeat with na in nextActions
+            set naName to name of na
+            set naNotes to body of na
+            if naNotes is missing value then set naNotes to ""
 
-                    -- Check if next action references this project
-                    if naName contains pname or naNotes contains pname then
-                        set hasAction to true
-                        exit repeat
-                    end if
-                end repeat
+            -- Check if next action references this project
+            if naName contains pname or naNotes contains pname then
+                set hasAction to true
+                exit repeat
+            end if
+        end repeat
 
-                if not hasAction then
-                    set output to output & pid & \"\t\" & pname & \"\t\" & \"no next action\" & \"\n\"
-                end if
-            end repeat
-            return output
-        end tell
-    "
+        if not hasAction then
+            set output to output & pid & "\t" & pname & "\t" & "no next action" & "\n"
+        end if
+    end repeat
+    return output
+end tell
+APPLESCRIPT
 }
 
 # Get waiting items with age
 get_waiting_with_age() {
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            set today to current date
-            set waitList to list \"Waiting For\"
+    osascript <<'APPLESCRIPT'
+tell application "Reminders"
+    set output to ""
+    set today to current date
+    set waitList to list "Waiting For"
 
-            set rems to reminders of waitList whose completed is false
-            repeat with r in rems
-                set rid to id of r
-                set rname to name of r
-                set rbody to body of r
-                if rbody is missing value then set rbody to \"\"
-                set mdate to modification date of r
-                set ageInDays to ((today - mdate) / days) as integer
+    set rems to reminders of waitList whose completed is false
+    repeat with r in rems
+        set rid to id of r
+        set rname to name of r
+        set rbody to body of r
+        if rbody is missing value then set rbody to ""
+        set mdate to modification date of r
+        set ageInDays to ((today - mdate) / days) as integer
 
-                -- Extract who from @waiting: tag
-                set waitingFor to \"\"
-                if rbody contains \"@waiting:\" then
-                    set AppleScript's text item delimiters to \"@waiting: \"
-                    set parts to text items of rbody
-                    if (count of parts) > 1 then
-                        set waitingFor to item 2 of parts
-                        set AppleScript's text item delimiters to return
-                        set waitingFor to item 1 of (text items of waitingFor)
-                    end if
-                end if
+        -- Extract who from @waiting: tag
+        set waitingFor to ""
+        if rbody contains "@waiting:" then
+            set AppleScript's text item delimiters to "@waiting: "
+            set parts to text items of rbody
+            if (count of parts) > 1 then
+                set waitingFor to item 2 of parts
+                set AppleScript's text item delimiters to return
+                set waitingFor to item 1 of (text items of waitingFor)
+            end if
+        end if
 
-                set output to output & rid & \"\t\" & rname & \"\t\" & waitingFor & \"\t\" & ageInDays & \" days\n\"
-            end repeat
-            return output
-        end tell
-    "
+        set output to output & rid & "\t" & rname & "\t" & waitingFor & "\t" & ageInDays & " days\n"
+    end repeat
+    return output
+end tell
+APPLESCRIPT
 }
 
 # Count items per list
 get_counts() {
-    osascript -e "
-        tell application \"Reminders\"
-            set output to \"\"
-            repeat with lst in lists
-                set listName to name of lst
-                set count_ to count of (reminders of lst whose completed is false)
-                set output to output & listName & \"\t\" & count_ & \"\n\"
-            end repeat
-            return output
-        end tell
-    "
+    osascript <<'APPLESCRIPT'
+tell application "Reminders"
+    set output to ""
+    repeat with lst in lists
+        set listName to name of lst
+        set count_ to count of (reminders of lst whose completed is false)
+        set output to output & listName & "\t" & count_ & "\n"
+    end repeat
+    return output
+end tell
+APPLESCRIPT
 }
 
 # ============================================================================
@@ -886,11 +914,11 @@ case "${1:-help}" in
     "setup") ensure_gtd_lists ;;
 
     # Read operations
-    "inbox") get_inbox ;;
-    "next") get_next_actions ;;
-    "waiting") get_waiting ;;
-    "someday") get_someday ;;
-    "projects") get_projects ;;
+    "inbox") get_list "Inbox" ;;
+    "next") get_list "Next Actions" ;;
+    "waiting") get_list "Waiting For" ;;
+    "someday") get_list "Someday" ;;
+    "projects") get_list "Projects" ;;
     "list") get_list "$2" ;;
     "today") get_today ;;
     "upcoming") get_upcoming ;;
