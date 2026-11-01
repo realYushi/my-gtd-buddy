@@ -26,19 +26,19 @@ _How the Claude Code GTD skill works in practice_
 "13 items. Let's clear them.
 
 1/13: 'client meeting'
- Actionable? When? (now/later/someday/delete)"
+ Actionable? (now/later/someday/delete)"
 ```
 
-> y later
+> later
 
 ```
 "Done. → Next Actions
 
 2/13: 'apply job'
- Actionable? When?"
+ Actionable? (now/later/someday/delete)"
 ```
 
-> y later @home
+> later @home
 
 ```
 "Done. → Next Actions (@home)
@@ -59,7 +59,7 @@ _How the Claude Code GTD skill works in practice_
 "Done. → Someday
 
 4/13: 'weekend meeting'
- Actionable? When?"
+ Actionable? (now/later/someday/delete)"
 ```
 
 _[Continue processing remaining items]_
@@ -67,7 +67,7 @@ _[Continue processing remaining items]_
 **Result**: Inbox zero in 10 minutes
 
 ```
-"Done. 13 processed:
+"Done. 13 processed, 3 deferred:
  • 8 → Next Actions
  • 3 → Someday
  • 2 → Deleted
@@ -217,15 +217,12 @@ Tomorrow, or quick finish?"
 > move both to later
 
 ```
-"Done. Both unflagged.
+"Done. Both moved to Next Actions.
+Undo available.
 
 Nice day — 6 tasks completed.
-You usually do 5. Ahead of average.
-
-Undo? (y/n)"
+You usually process around 10 items per session."
 ```
-
-> n
 
 ---
 
@@ -255,8 +252,8 @@ Wins:
 • Resume update
 • 3 quick tasks
 
-Velocity: 6 items (avg: 5.2)
-
+Today: 13 processed, 3 deferred.
+Last 7 days: 6 completed.
 4 new items captured → Inbox."
 ```
 
@@ -291,7 +288,7 @@ Quick review? (y/n)"
 - AI matched tasks to energy levels
 - Smooth context switching (@errands during lunch)
 - Dated processing history set a realistic pace
-- Undo restored whole decisions when needed
+- Whole-decision undo was available when needed
 
 ---
 
@@ -316,7 +313,7 @@ Ready?"
 **Part 1: Wins**
 
 ```
-"Completed this week:
+"Completed in the last 7 days:
 • Client meeting prep
 • Resume update
 • Toggl research
@@ -417,13 +414,14 @@ Anything else?"
 
 ```
 "Review done.
-• 32 completed this week
+• Last 7 days: 32 completed
 • 3 stale triaged
 • 1 project fixed
 • 2 waiting reviewed
 • 1 mind sweep item
 
-Trends: velocity up 15% from last week.
+13 processed this week.
+Processing velocity: 10.4 per session.
 
 Next week focus?"
 ```
@@ -481,18 +479,28 @@ Now process inbox? (y/n)"
 
 > keep
 
+```
+"→ Next Actions"
+```
+
 _[Rapid processing continues]_
 
 ---
 
 ## The GTD Skill in Action
 
+### Capture Mode (Any Time)
+
+- One command adds each item to Inbox
+- Natural dates: "remind me to call mom tomorrow"
+- Captures stay separate from processing totals
+
 ### Process Mode (Morning)
 
 - 10 minutes to process 13 items
-- Terse: "Actionable? When?" → "y later" → "Done."
-- Optional context: "y later @home"
-- Proper routing to Reminders lists
+- Terse: "Actionable? (now/later/someday/delete)" → "later @home"
+- One decision per item: `now`, `process`, `delegate`, `defer`, or `delete`
+- Whole-decision undo restores later edits safely
 
 ### Coach Mode (All Day)
 
@@ -501,12 +509,18 @@ _[Rapid processing continues]_
 - Pace-aware: recent processing velocity
 - Time-aware: "1.5h available" → appropriate tasks
 
+### Waiting Mode (On Demand)
+
+- Shows who owes what and for how long
+- Nudge adds a follow-up next action
+- Completion remains undoable
+
 ### Review Mode (Weekly)
 
 - 5 parts: wins, stuck, projects, waiting, sweep
 - Project health: finds orphan projects
 - Waiting nudges: shows age, offers follow-up
-- Trends: velocity comparison
+- Dated weeks compare processing volume; completion snapshots stay separate
 
 ### Health Mode (Recovery)
 
@@ -514,8 +528,9 @@ _[Rapid processing continues]_
 - Inbox blitz for rapid triage
 - Focus mode for overwhelm
 
-### State Tracking (Automatic)
+### State Tracking (At Session Close)
 
+- Stable session IDs make retries idempotent
 - Dated weekly outcomes (processed/deferred/context)
 - Separate seven-day completion snapshots
 - Processing velocity from known process sessions
