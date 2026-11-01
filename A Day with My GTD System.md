@@ -73,7 +73,7 @@ _[Continue processing remaining items]_
  • 2 → Deleted
 
 Today: 5 flagged. Top priority: 'Prepare client meeting agenda'.
-You have 10 AM team meeting, 2 PM client call. 4h free.
+You have 10 AM team meeting, 2 PM client call. 4h available.
 
 Start with agenda prep?"
 ```
@@ -87,12 +87,12 @@ Start with agenda prep?"
 **8:00 AM**: Start focused work
 
 - **Action**: "what should I work on?"
-- Skill checks trends, sees Tuesday is a peak day:
+- Skill checks dated trends and recent processing velocity:
 
 ```
-"Tuesday is usually a strong day for you.
+"You usually process around 10 items per session.
 
-5 in Next Actions. 2 flagged. 4h free.
+5 in Next Actions. 2 flagged. 4h available.
 Energy? (high/medium/low)"
 ```
 
@@ -290,8 +290,8 @@ Quick review? (y/n)"
 - Stayed focused during meetings
 - AI matched tasks to energy levels
 - Smooth context switching (@errands during lunch)
-- Historical patterns helped ("Tuesday is peak day")
-- Undo available if needed
+- Dated processing history set a realistic pace
+- Undo restored whole decisions when needed
 
 ---
 
@@ -498,8 +498,8 @@ _[Rapid processing continues]_
 
 - Energy-aware: "feeling low" → #low tasks
 - Context-aware: "@errands" → location filter
-- Pattern-aware: "Tuesday is peak day"
-- Time-aware: "1.5h free" → appropriate tasks
+- Pace-aware: recent processing velocity
+- Time-aware: "1.5h available" → appropriate tasks
 
 ### Review Mode (Weekly)
 
@@ -516,10 +516,10 @@ _[Rapid processing continues]_
 
 ### State Tracking (Automatic)
 
-- Weekly trends (completed/processed/deferred)
-- Context usage (@home, @office frequency)
-- Processing velocity (exponential average)
-- Peak/defer day patterns
+- Dated weekly outcomes (processed/deferred/context)
+- Separate seven-day completion snapshots
+- Processing velocity from known process sessions
+- Current week plus three previous tracking weeks
 
 ---
 

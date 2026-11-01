@@ -55,8 +55,8 @@ Script: `.claude/skills/gtd/scripts/reminders.sh`
 | `update <id> <prop> <val>` | Update property |
 | `move <id> <list>` | Move to list |
 | `complete <id>` | Mark complete |
-| `delete <id>` | Delete |
-| `undo` | Undo last move/complete |
+| `delete <id>` | Delete permanently |
+| `undo` | Reverse the last decision, preserving later edits |
 
 ### Natural Language Dates
 
@@ -72,6 +72,7 @@ Script: `.claude/skills/gtd/scripts/reminders.sh`
 
 | Command | Description |
 |---------|-------------|
+| `now <id> [context] [energy] [duration]` | Move to Next Actions, add tags, and flag as one decision |
 | `process <id> [context] [energy] [duration]` | Move to Next Actions with tags |
 | `delegate <id> <person>` | Move to Waiting For |
 | `defer <id>` | Move to Someday |
@@ -100,8 +101,10 @@ Script: `.claude/skills/gtd/scripts/calendar.sh`
 | `week [calendar]` | This week's events |
 | `date <YYYY-MM-DD> [calendar]` | Events on specific date |
 | `upcoming [days] [calendar]` | Upcoming events (default: 7 days) |
-| `free [calendar]` | Free time today (9AM-6PM) |
-| `gaps [mins] [calendar]` | Find free gaps (default: 30 min) |
+| `free [calendar]` | Available time remaining today (9AM-6PM) |
+| `gaps [mins] [calendar]` | Available intervals remaining today (default: 30 min) |
+
+Both commands start at the later of now and 9AM. Overlapping events count once, events already underway are included, and all-day events are excluded.
 
 ### Search
 
@@ -130,20 +133,18 @@ Script: `.claude/skills/gtd/scripts/state.sh`
 | Command | Description |
 |---------|-------------|
 | `read` | Read full state |
-| `session <mode> <count>` | Update after session |
-| `review <count> [focus]` | Update after review |
+| `begin <mode>` | Generate a stable session or review ID without writing |
+| `session <mode> [count] --id <id> [--deferred N] [--contexts JSON]` | Record net outcomes for one session |
+| `review <count> [focus] --id <id>` | Record a dated seven-day completion snapshot |
 | `health` | Quick health summary |
 | `review-days` | Days since last review |
+| `trends` | Dated weeks, completion snapshots, and velocity |
 
-### Tracking
+Retain the ID from `begin`. Repeating a `session` or `review` call with the same ID and payload is a no-op; reusing it with different values is an error. Omit unknown counts. `processed` counts Inbox dispositions; `deferred` counts Inbox items moved to Someday. Same-session undo is subtracted before recording. Coach sessions do not affect processing velocity.
 
-| Command | Description |
-|---------|-------------|
-| `trends` | Show trends and patterns |
-| `context <name>` | Increment context usage (home/office/errands/calls) |
-| `weekly <completed> <processed> <deferred>` | Update weekly trends |
-| `velocity <n>` | Update processing velocity |
-| `pattern <type> <day>` | Record day pattern (peak/defer) |
+### Legacy compatibility
+
+`context`, `weekly`, `velocity`, and `pattern` only update `legacy_history`. They never contribute to dated totals. Modes do not use them.
 
 ---
 

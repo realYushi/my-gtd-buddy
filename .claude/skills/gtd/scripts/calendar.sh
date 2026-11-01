@@ -277,115 +277,11 @@ APPLESCRIPT
 # ============================================================================
 
 find_gaps() {
-    local min_minutes="${1:-30}"
-    local calendar="${2:-}"
-
-    # Calendar name passed via env (system attribute) to avoid AppleScript injection
-    GTD_CAL="$calendar" osascript -e "
-        tell application \"Calendar\"
-            set today to current date
-            set today_start to today - (time of today)
-            set today_end to today_start + 1 * days
-            set workStart to today_start + 9 * hours  -- 9 AM
-            set workEnd to today_start + 18 * hours   -- 6 PM
-
-            -- Collect all events for today
-            set allEvents to {}
-            set cals to calendars
-            set theCal to (system attribute \"GTD_CAL\")
-            if theCal is not \"\" then set cals to {calendar theCal}
-
-            repeat with cal in cals
-                set evts to (every event of cal whose start date ≥ workStart and start date < workEnd and allday event is false)
-                repeat with e in evts
-                    set end of allEvents to {startTime:start date of e, endTime:end date of e}
-                end repeat
-            end repeat
-
-            -- Sort events by start time (simple bubble sort)
-            repeat with i from 1 to (count of allEvents) - 1
-                repeat with j from i + 1 to count of allEvents
-                    if startTime of item j of allEvents < startTime of item i of allEvents then
-                        set temp to item i of allEvents
-                        set item i of allEvents to item j of allEvents
-                        set item j of allEvents to temp
-                    end if
-                end repeat
-            end repeat
-
-            -- Find gaps
-            set output to \"\"
-            set minGap to $min_minutes * minutes
-            set currentTime to workStart
-            if currentTime < today then set currentTime to today
-
-            repeat with evt in allEvents
-                set evtStart to startTime of evt
-                set evtEnd to endTime of evt
-
-                if evtStart > currentTime then
-                    set gapDuration to (evtStart - currentTime) / minutes
-                    if gapDuration ≥ $min_minutes then
-                        set output to output & (currentTime as string) & \"\t\" & (evtStart as string) & \"\t\" & (round gapDuration) & \" min\n\"
-                    end if
-                end if
-
-                if evtEnd > currentTime then
-                    set currentTime to evtEnd
-                end if
-            end repeat
-
-            -- Check gap after last event until work end
-            if currentTime < workEnd then
-                set gapDuration to (workEnd - currentTime) / minutes
-                if gapDuration ≥ $min_minutes then
-                    set output to output & (currentTime as string) & \"\t\" & (workEnd as string) & \"\t\" & (round gapDuration) & \" min\n\"
-                end if
-            end if
-
-            return output
-        end tell
-    "
+    python3 "$SCRIPT_DIR/gtd_calendar.py" gaps "$@"
 }
 
 get_free_time() {
-    # Total free time today (in work hours)
-    local calendar="${1:-}"
-
-    # Calendar name passed via env (system attribute) to avoid AppleScript injection
-    GTD_CAL="$calendar" osascript -e "
-        tell application \"Calendar\"
-            set today to current date
-            set today_start to today - (time of today)
-            set workStart to today_start + 9 * hours
-            set workEnd to today_start + 18 * hours
-
-            set totalBusy to 0
-            set cals to calendars
-            set theCal to (system attribute \"GTD_CAL\")
-            if theCal is not \"\" then set cals to {calendar theCal}
-
-            repeat with cal in cals
-                set evts to (every event of cal whose start date ≥ workStart and start date < workEnd and allday event is false)
-                repeat with e in evts
-                    set estart to start date of e
-                    set eend to end date of e
-                    -- Clamp to work hours
-                    if estart < workStart then set estart to workStart
-                    if eend > workEnd then set eend to workEnd
-                    set totalBusy to totalBusy + (eend - estart)
-                end repeat
-            end repeat
-
-            set workHours to 9 * hours
-            set freeTime to workHours - totalBusy
-            set freeMinutes to round (freeTime / minutes)
-            set freeHours to freeMinutes div 60
-            set remainingMins to freeMinutes mod 60
-
-            return (freeHours as string) & \"h \" & (remainingMins as string) & \"m free today (9AM-6PM)\"
-        end tell
-    "
+    python3 "$SCRIPT_DIR/gtd_calendar.py" free "$@"
 }
 
 # ============================================================================
@@ -440,7 +336,7 @@ case "${1:-help}" in
         echo ""
         echo "GTD Helpers:"
         echo "  gaps [min_minutes] [calendar] - Find free gaps today (default: 30 min)"
-        echo "  free [calendar]    - Show total free time today"
+        echo "  free [calendar]    - Available time remaining today (9AM-6PM)"
         echo ""
         echo "Output Format:"
         echo "  <id>  <title>  <start>  <end>  <location>  <calendar>  <allday>"

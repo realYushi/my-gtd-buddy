@@ -29,7 +29,7 @@ The system focuses on:
 - **Focused execution** — Context-aware task selection with energy matching
 - **Continuous review** — AI-driven micro-reviews with project health checks
 - **Proactive surfacing** — AI surfaces relevant info using historical patterns
-- **Undo support** — Safely undo moves and completions
+- **Whole-decision undo** — Safely reverse moves, processing, delegation, deferral, flags, and completion
 
 > **See It In Action**: Check out [A Day with My GTD System.md](A%20Day%20with%20My%20GTD%20System.md) — a complete walkthrough from morning to night showing how the system handles real interruptions, context switching, and maintains focus. Also see [SCENARIOS.md](SCENARIOS.md) for recipes for common situations like "Post-Vacation Reset" or "5-Minute Gap".
 
@@ -38,10 +38,10 @@ The system focuses on:
 - **Apple Reminders native** — Uses standard Reminders lists (Inbox, Next Actions, Waiting For, Someday, Projects)
 - **Calendar integration** — macOS Calendar for appointment + task coordination
 - **Context tags** — Location (@home, @office) and energy (#high, #low, #quick) in notes
-- **Historical patterns** — Tracks velocity, peak days, context usage for smarter suggestions
+- **Dated history** — Tracks processing velocity, context usage, and completion snapshots for grounded suggestions
 - **Project health** — Detects orphan projects without next actions
 - **Waiting nudges** — Shows waiting items with age, prompts for follow-ups
-- **Undo support** — Undo last move/complete actions
+- **Whole-decision undo** — Restore every field a decision changed while preserving later edits
 - **Natural language dates** — "tomorrow 2pm", "next friday", "Jan 15"
 - **Batch operations** — Declare bankruptcy on stale items
 - **Terse communication** — "Captured: [item]" not "I've successfully added..."
@@ -71,10 +71,13 @@ graph TB
         SKILL --> HEALTH
     end
 
-    subgraph "Scripts Layer"
-        RSCRIPT[reminders.sh<br/>AppleScript Wrapper]
-        CSCRIPT[calendar.sh<br/>AppleScript Wrapper]
-        SSCRIPT[state.sh<br/>Trend Tracking]
+    subgraph "Command + Decision Modules"
+        RSCRIPT[reminders.sh<br/>AppleScript queries]
+        RDECIDE[gtd_reminders.py<br/>decisions + undo]
+        CSCRIPT[calendar.sh<br/>event queries]
+        CAVAIL[gtd_calendar.py<br/>availability]
+        SSCRIPT[state.sh<br/>compatibility entry]
+        STRACK[gtd_tracking.py<br/>dated outcomes]
     end
 
     subgraph "Apple Reminders"
@@ -91,8 +94,8 @@ graph TB
     end
 
     subgraph "State"
-        TRENDS[Weekly Trends]
-        PATTERNS[Day Patterns]
+        TRENDS[Dated Weeks]
+        SNAPSHOTS[Completion Snapshots]
         VELOCITY[Processing Velocity]
     end
 
@@ -104,11 +107,14 @@ graph TB
     RSCRIPT --> WAITING
     RSCRIPT --> SOMEDAY
     RSCRIPT --> PROJECTS
+    RSCRIPT --> RDECIDE
     CSCRIPT --> EVENTS
     CSCRIPT --> FREE
-    SSCRIPT --> TRENDS
-    SSCRIPT --> PATTERNS
-    SSCRIPT --> VELOCITY
+    CSCRIPT --> CAVAIL
+    SSCRIPT --> STRACK
+    STRACK --> TRENDS
+    STRACK --> SNAPSHOTS
+    STRACK --> VELOCITY
 ```
 
 ## GTD Workflow
@@ -165,19 +171,26 @@ flowchart TD
 └── skills/
     └── gtd/
         ├── SKILL.md              # Main orchestrator + routing
-        ├── state.yaml            # Trends, patterns, preferences
+        ├── state.yaml            # Dated outcomes, snapshots, preferences
         ├── modes/
         │   ├── process.md        # Interactive inbox processing
         │   ├── coach.md          # Context + energy-aware selection
         │   ├── review.md         # 5-part weekly review
-        │   └── health.md         # System health + recovery
+        │   ├── health.md         # System health + recovery
+        │   ├── capture.md        # Quick capture to Inbox
+        │   └── waiting.md        # Waiting review and nudges
         ├── scripts/
-        │   ├── reminders.sh      # Apple Reminders AppleScript wrapper
-        │   ├── calendar.sh       # macOS Calendar AppleScript wrapper
-        │   └── state.sh          # Trend and pattern tracking (uses yq)
+        │   ├── reminders.sh      # Reminder queries + command entry point
+        │   ├── gtd_reminders.py  # Decision, undo, and failure handling
+        │   ├── calendar.sh       # Calendar queries + command entry point
+        │   ├── gtd_calendar.py   # Shared availability calculation
+        │   ├── state.sh          # State command entry point
+        │   └── gtd_tracking.py   # Dated outcomes through yq
         └── reference/
             └── tools.md          # Complete CLI reference
 
+tests/                            # Interface tests with fake adapters
+GLOSSARY.md                       # GTD domain language
 A Day with My GTD System.md       # Real workflow example
 SCENARIOS.md                      # Common scenarios and recipes
 ```
@@ -188,6 +201,7 @@ SCENARIOS.md                      # Common scenarios and recipes
 - **Apple Reminders** — Pre-installed on macOS
 - **macOS Calendar** — Pre-installed on macOS
 - **Claude Code** — AI-powered CLI
+- **Python 3** — Standard library only (`python3 --version`)
 - **yq** — Portable command-line YAML processor (`brew install yq`)
 
 ## Important Warning
@@ -203,7 +217,7 @@ SCENARIOS.md                      # Common scenarios and recipes
 
 - **Test with non-critical data first**
 - **Start slowly** — Begin with read-only commands
-- **Use undo** — `./scripts/reminders.sh undo` reverses last move/complete
+- **Use undo** — `.claude/skills/gtd/scripts/reminders.sh undo` reverses the last decision while preserving later edits
 - **Review AI actions** — Always verify, especially for important tasks
 
 ## Setup Guide
@@ -214,7 +228,7 @@ SCENARIOS.md                      # Common scenarios and recipes
 # Install Claude Code
 npm install -g @anthropic-ai/claude-code
 
-# Install yq
+# Install yq (Python 3 ships with macOS)
 brew install yq
 ```
 
@@ -236,7 +250,7 @@ Open Apple Reminders and create these lists:
 
 Or run the setup script:
 ```bash
-./scripts/reminders.sh setup
+.claude/skills/gtd/scripts/reminders.sh setup
 ```
 
 ### 4. Make Scripts Executable
@@ -264,6 +278,14 @@ claude
 - If Reminders access fails: Grant Terminal/Claude access in System Settings → Privacy & Security → Automation
 - If Calendar access fails: Grant access in System Settings → Privacy & Security → Calendars
 - If `state.sh` fails: Ensure `yq` is installed (`brew install yq`)
+
+### 6. Run Tests
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+The tests use fake Reminders/Calendar adapters and temporary state files. They never touch your live data. Tracking tests require `yq`.
 
 ## How to Use
 
@@ -298,10 +320,10 @@ cleanup
 
 The skill surfaces information using your historical patterns:
 
-- **Peak days**: "Tuesday is usually a strong day for you"
 - **Velocity**: "You usually process 12 items per session"
 - **Context**: "You do a lot @home — filter those?"
-- **Trends**: "Completions down lately. Overwhelmed?"
+- **Completion snapshot**: "23 completed in the last seven days"
+- **Dated weeks**: Compare processing volume only when enough complete weeks exist
 - **Orphan projects**: "3 projects need a next action"
 - **Stale waiting**: "'Email from John' waiting 10 days. Nudge?"
 

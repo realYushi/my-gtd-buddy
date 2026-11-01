@@ -1,6 +1,6 @@
 # System Health
 
-Agent checks health at session start and surfaces issues naturally. Never lecture — state facts, offer action.
+Agent checks health at session start and surfaces issues naturally. State facts and offer action.
 
 ## Health Thresholds
 
@@ -50,12 +50,18 @@ Which?
 ```
 Then: "Done. [N] items moved to Someday. Inbox next? (y/n)"
 
+Stale items moved to Someday are not processed Inbox items. Do not add them to processing totals.
+
 **Option 2 — Blitz:**
+Start a process session and keep its ID:
+```bash
+.claude/skills/gtd/scripts/state.sh begin process
+```
 Use inbox processing flow but faster — just "keep/dump" for each:
 ```
 1/[N]: '[item]' — keep or dump?
 ```
-No project detection, no context tagging. Speed is the point.
+Keep only keep/dump decisions. Speed is the point. At the end, record net processed and deferred outcomes with `state.sh session process <processed> --id <session-id> --deferred <deferred>`. Omit unknown counts.
 
 **Option 3 — Focus 3:**
 ```bash

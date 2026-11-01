@@ -10,7 +10,10 @@
 .claude/skills/gtd/scripts/reminders.sh stale 7
 .claude/skills/gtd/scripts/reminders.sh orphan-projects
 .claude/skills/gtd/scripts/reminders.sh waiting-age
+.claude/skills/gtd/scripts/state.sh begin review
 ```
+
+Keep the printed review ID. `completed 7` is a rolling seven-day completion snapshot, not an additive weekly total.
 
 ```
 Weekly review. ~[N] min based on what's here.
@@ -27,7 +30,7 @@ Estimate time: 2 min base + 30s per stale item + 30s per orphan project + 30s pe
 
 Show completed items. Ask: "Biggest win?"
 
-Acknowledge briefly ("Nice." / "Solid."), move on. Don't dwell.
+Acknowledge briefly ("Nice." / "Solid.") and move on.
 
 ## Part 2: Stuck Items (2-3 min)
 
@@ -50,8 +53,10 @@ Otherwise go item by item:
 | Response | Action |
 |----------|--------|
 | `y` or `keep` | Keep in Next Actions |
-| `someday` | Move to Someday |
-| `delete` | Delete |
+| `someday` | `reminders.sh defer <id>` |
+| `delete` | `reminders.sh delete <id>` |
+
+Every move and completion is one undoable decision. Command outcomes follow [Error Recovery](../SKILL.md#error-recovery).
 
 ## Part 3: Project Health (1-2 min)
 
@@ -97,8 +102,10 @@ Add each to inbox. "Got it." Repeat until "done" or "no."
 ## Close
 
 ```bash
-.claude/skills/gtd/scripts/state.sh review <completed_count> "<focus>"
+.claude/skills/gtd/scripts/state.sh review <completed_count> "<focus>" --id <review-id>
 ```
+
+If the user has no focus, omit it. Repeating the same review with the same ID is safe. Review snapshots are dated observations; the tracking module never adds overlapping seven-day windows together.
 
 ```
 Review done.

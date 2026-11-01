@@ -9,9 +9,12 @@ For planning, focus, energy matching, and getting unstuck. The goal is always to
 .claude/skills/gtd/scripts/reminders.sh counts
 .claude/skills/gtd/scripts/calendar.sh free
 .claude/skills/gtd/scripts/state.sh trends
+.claude/skills/gtd/scripts/state.sh begin coach
 ```
 
-Assess silently. Don't dump all the data — pick what's relevant to the user's intent and lead with ONE focusing question or suggestion.
+Keep the printed session ID. Available time means the rest of today inside the 9AM–6PM workday, with overlapping events counted once.
+
+Assess silently. Pick what is relevant to the user's intent and lead with ONE focusing question or suggestion.
 
 ## Patterns
 
@@ -35,7 +38,7 @@ Top 3 candidates:
 Start with #1, or pick another?
 ```
 
-Pull candidates from: flagged items first, then due today, then oldest in Next Actions. Keep it to 3. If calendar is packed, say "Tight day — [X]h free. Pick one thing."
+Pull candidates from: flagged items first, then due today, then oldest in Next Actions. Keep it to 3. If calendar is packed, say "Tight day — [X]h available. Pick one thing."
 
 ### "What should I do?" / "What should I work on?"
 
@@ -118,17 +121,16 @@ Pick one, or rest? No shame in resting.
 
 ## Using Historical Data
 
-When trends data exists, weave it in naturally — don't announce it:
+`state.sh trends` returns dated weeks and completion snapshots. Use it only when `trends_available` is true; that requires two or more dated weeks.
 
-| Pattern | How to use it |
-|---------|---------------|
-| `peak_days` contains today | Lead with: "[Day]s are usually strong for you." |
-| `defer_days` contains today | "You tend to push things on [day]s — keep it light?" |
-| High context usage | "You do a lot @[context] — want to batch those?" |
-| Declining `weekly_completed` | "Completions are down. Overloaded or just a slow stretch?" |
-| High velocity | "You usually knock out [N]/session." (sets a target) |
+| Data | How to use it |
+|------|---------------|
+| `processing_velocity` | "You usually process [N] per session." Only compare processing sessions. |
+| A week's `contexts` with `contexts_complete: true` | "You do a lot @[context] — want to batch those?" |
+| `weekly_processed` with `processed_complete: true` | Compare processing volume; omit incomplete weeks. |
+| `completion_snapshots` | Show the latest seven-day count as a snapshot. Never add snapshots or call them weekly completions. |
 
-Don't show trends data if there isn't enough history. 2+ weeks of data minimum.
+Missing or incomplete values are unknown, not zero. Compare only dated, complete observations; older undated history stays out of weekly claims.
 
 ## Energy Mapping
 
@@ -148,12 +150,10 @@ If user mentions a location or context:
 
 Suggest top 3 from that context. If no tasks tagged with that context, say so: "Nothing tagged @home. Want to tag some tasks?"
 
-## Error Handling
-
-If scripts fail: "Reminders not responding. Open it and try again?"
-
 ## Session End
 
 ```bash
-.claude/skills/gtd/scripts/state.sh session coach 1
+.claude/skills/gtd/scripts/state.sh session coach --id <session-id>
 ```
+
+Coach does not affect processing velocity. Record context counts only when this session assigned contexts. Repeating the same call with the same ID is safe.

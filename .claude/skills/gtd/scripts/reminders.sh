@@ -4,82 +4,16 @@
 
 set -e
 
-# ============================================================================
-# UNDO SUPPORT
-# ============================================================================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-UNDO_FILE="${SCRIPT_DIR:-/tmp}/../.undo_stack"
+# Decision logic, history, and failure outcomes share one implementation.
+case "${1:-help}" in
+    move|process|now|delegate|defer|complete|delete|undo)
+        exec python3 "$SCRIPT_DIR/gtd_reminders.py" "$@" ;;
+esac
 
-# Save action for potential undo
-save_undo() {
-    local action="$1"    # delete, move, complete
-    local id="$2"
-    local data="$3"      # original list for move, reminder data for delete
-
-    echo "$action|$id|$data|$(date +%s)" >> "$UNDO_FILE"
-
-    # Keep only last 10 undos
-    if [[ -f "$UNDO_FILE" ]]; then
-        tail -10 "$UNDO_FILE" > "${UNDO_FILE}.tmp"
-        mv "${UNDO_FILE}.tmp" "$UNDO_FILE"
-    fi
-}
-
-# Get last action for undo
-get_last_undo() {
-    if [[ -f "$UNDO_FILE" ]]; then
-        tail -1 "$UNDO_FILE"
-    fi
-}
-
-# Remove last undo entry
-pop_undo() {
-    if [[ -f "$UNDO_FILE" ]]; then
-        head -n -1 "$UNDO_FILE" > "${UNDO_FILE}.tmp"
-        mv "${UNDO_FILE}.tmp" "$UNDO_FILE"
-    fi
-}
-
-# Perform undo
-do_undo() {
-    local last=$(get_last_undo)
-    if [[ -z "$last" ]]; then
-        echo "Nothing to undo"
-        return 1
-    fi
-
-    IFS='|' read -r action id data timestamp <<< "$last"
-
-    case "$action" in
-        "move")
-            # Move back to original list
-            move_reminder "$id" "$data"
-            echo "Undone: moved back to $data"
-            ;;
-        "complete")
-            # Uncomplete
-            osascript - "$id" <<'APPLESCRIPT'
-on run argv
-    set theID to item 1 of argv
-    tell application "Reminders"
-        set r to reminder id theID
-        set completed of r to false
-    end tell
-end run
-APPLESCRIPT
-            echo "Undone: marked incomplete"
-            ;;
-        "delete")
-            echo "Cannot undo delete (item permanently removed)"
-            return 1
-            ;;
-        *)
-            echo "Unknown action: $action"
-            return 1
-            ;;
-    esac
-
-    pop_undo
+move_reminder() {
+    python3 "$SCRIPT_DIR/gtd_reminders.py" move "$@"
 }
 
 # ============================================================================
@@ -579,169 +513,6 @@ APPLESCRIPT
     esac
 }
 
-move_reminder() {
-    local reminder_id="$1"
-    local target_list="$2"
-
-    # Get current list for undo
-    local current_list
-    current_list=$(osascript - "$reminder_id" <<'APPLESCRIPT'
-on run argv
-    set theID to item 1 of argv
-    tell application "Reminders"
-        set r to reminder id theID
-        return name of container of r
-    end tell
-end run
-APPLESCRIPT
-    ) || true
-
-    osascript - "$reminder_id" "$target_list" <<'APPLESCRIPT'
-on run argv
-    set theID to item 1 of argv
-    set theList to item 2 of argv
-    tell application "Reminders"
-        set r to reminder id theID
-        set targetList to list theList
-        move r to targetList
-    end tell
-end run
-APPLESCRIPT
-
-    # Save for undo
-    if [[ -n "$current_list" ]]; then
-        save_undo "move" "$reminder_id" "$current_list"
-    fi
-}
-
-complete_reminder() {
-    local reminder_id="$1"
-
-    # Save for undo before completing
-    save_undo "complete" "$reminder_id" ""
-
-    osascript - "$reminder_id" <<'APPLESCRIPT'
-on run argv
-    set theID to item 1 of argv
-    tell application "Reminders"
-        set r to reminder id theID
-        set completed of r to true
-    end tell
-end run
-APPLESCRIPT
-}
-
-# Safe delete with confirmation message
-delete_reminder() {
-    local reminder_id="$1"
-    local force="${2:-false}"
-
-    # Get name for confirmation
-    local name
-    name=$(osascript - "$reminder_id" <<'APPLESCRIPT'
-on run argv
-    set theID to item 1 of argv
-    tell application "Reminders"
-        set r to reminder id theID
-        return name of r
-    end tell
-end run
-APPLESCRIPT
-    ) || true
-
-    if [[ "$force" != "true" && "$force" != "-f" ]]; then
-        echo "Deleting: '$name' (cannot be undone)"
-    fi
-
-    osascript - "$reminder_id" <<'APPLESCRIPT'
-on run argv
-    set theID to item 1 of argv
-    tell application "Reminders"
-        set r to reminder id theID
-        delete r
-    end tell
-end run
-APPLESCRIPT
-
-    echo "Deleted: $name"
-}
-
-# ============================================================================
-# GTD-SPECIFIC OPERATIONS
-# ============================================================================
-
-# Move from Inbox to Next Actions with optional tags in notes
-process_to_next() {
-    local reminder_id="$1"
-    local context="${2:-}"    # @home, @office, @errands, @calls
-    local energy="${3:-}"     # #high, #low, #quick
-    local duration="${4:-}"   # #5min, #15min, #30min, #1hour, #deep
-
-    # Build tags string
-    local tags=""
-    [[ -n "$context" ]] && tags="$context"
-    [[ -n "$energy" ]] && tags="$tags $energy"
-    [[ -n "$duration" ]] && tags="$tags $duration"
-    tags=$(echo "$tags" | xargs)  # trim
-
-    osascript - "$reminder_id" "$tags" <<'APPLESCRIPT'
-on run argv
-    set theID to item 1 of argv
-    set tagLine to item 2 of argv
-    tell application "Reminders"
-        set r to reminder id theID
-        set currentBody to body of r
-        if currentBody is missing value then set currentBody to ""
-
-        if tagLine is not "" then
-            if currentBody is "" then
-                set body of r to tagLine
-            else
-                set body of r to tagLine & return & currentBody
-            end if
-        end if
-
-        set targetList to list "Next Actions"
-        move r to targetList
-    end tell
-end run
-APPLESCRIPT
-}
-
-# Move to Waiting For with who/what info
-delegate_reminder() {
-    local reminder_id="$1"
-    local waiting_for="$2"  # Person or thing waiting for
-
-    osascript - "$reminder_id" "$waiting_for" <<'APPLESCRIPT'
-on run argv
-    set theID to item 1 of argv
-    set theWaiting to item 2 of argv
-    tell application "Reminders"
-        set r to reminder id theID
-        set currentBody to body of r
-        if currentBody is missing value then set currentBody to ""
-
-        set waitingLine to "@waiting: " & theWaiting
-        if currentBody is "" then
-            set body of r to waitingLine
-        else
-            set body of r to waitingLine & return & currentBody
-        end if
-
-        set targetList to list "Waiting For"
-        move r to targetList
-    end tell
-end run
-APPLESCRIPT
-}
-
-# Move to Someday
-defer_reminder() {
-    local reminder_id="$1"
-    move_reminder "$reminder_id" "Someday"
-}
-
 # Batch defer all stale items (for recovery/bankruptcy)
 batch_defer_stale() {
     local days="${1:-14}"
@@ -763,9 +534,9 @@ batch_defer_stale() {
         if [[ "$list" == "Someday" ]]; then
             continue
         fi
-        move_reminder "$id" "Someday" 2>/dev/null && {
+        move_reminder "$id" "Someday" >/dev/null 2>&1 && {
             echo "  → $name"
-            ((count++))
+            count=$((count + 1))
         }
     done <<< "$stale_output"
 
@@ -937,18 +708,11 @@ case "${1:-help}" in
     "add-natural") add_reminder_natural "$2" "${3:-Inbox}" "$4" "${5:-}" "${6:-false}" ;;
     "parse-date") parse_date "$2" ;;
     "update") update_reminder "$2" "$3" "$4" ;;
-    "move") move_reminder "$2" "$3" ;;
-    "complete") complete_reminder "$2" ;;
-    "delete") delete_reminder "$2" ;;
-
-    # GTD operations
-    "process") process_to_next "$2" "$3" "$4" "$5" ;;
-    "delegate") delegate_reminder "$2" "$3" ;;
-    "defer") defer_reminder "$2" ;;
+    # move, process, now, delegate, defer, complete, delete, and undo are
+    # dispatched to gtd_reminders.py above.
     "batch-defer") batch_defer_stale "${2:-14}" ;;
     "orphan-projects") get_orphan_projects ;;
     "waiting-age") get_waiting_with_age ;;
-    "undo") do_undo ;;
 
     # Help
     *)
@@ -994,6 +758,7 @@ case "${1:-help}" in
         echo "  batch-defer [days] - Defer all stale items (default: 14 days)"
         echo "  orphan-projects    - Find projects without next actions"
         echo "  waiting-age        - Show waiting items with age"
-        echo "  undo               - Undo last move/complete action"
+        echo "  now <id> [context] [energy] [duration] - Process and flag as one decision"
+        echo "  undo               - Reverse last decision, preserving later edits"
         ;;
 esac

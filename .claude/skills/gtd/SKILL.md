@@ -1,6 +1,6 @@
 ---
 name: gtd
-description: GTD productivity mentor for inbox processing, weekly reviews, daily planning, and focus coaching. Use this skill whenever the user mentions tasks, todos, reminders, inbox, productivity, focus, planning their day, feeling busy or overwhelmed, being stuck on something, wanting to prioritize, needing to organize, or anything GTD-related. Triggers on "process inbox", "clear inbox", "inbox zero", "weekly review", "how am I doing", "plan my day", "start my day", "morning routine", "what should I do", "I'm stuck", "I'm overwhelmed", "help me prioritize", "what can I do", "quick wins", "capture [something]", "add to inbox", "waiting on", "tired", "low energy", or /gtd command. Even if the user doesn't say "GTD" explicitly, trigger when they're clearly asking for task management help.
+description: GTD mentor for inbox processing, daily planning and focus coaching, weekly review, quick capture, waiting checks, reminder undo, and system recovery. Use whenever the user mentions tasks, reminders, inbox, planning, focus, overwhelm, productivity, or asks what to do next.
 user-invocable: true
 ---
 
@@ -21,7 +21,7 @@ Run silently, then pick ONE opener:
 1. **First-time user** (all counts zero, no prior session): "First session. What do you need — process inbox, plan your day, or just capture something?"
 2. **Critical health** (inbox 16+, stale 11+, review 15+ days): State the worst metric, offer to fix it: "Inbox has 23 items. Clear now?"
 3. **Returning after gap** (3+ days since last session): "Back after [N] days. [one-line status]." Then wait.
-4. **Healthy**: Wait for user intent. Don't narrate the health check.
+4. **Healthy**: Wait silently for user intent.
 
 ## Routing
 
@@ -31,74 +31,17 @@ Run silently, then pick ONE opener:
 | "weekly review", "review", "how am I doing" | [modes/review.md](modes/review.md) |
 | "plan my day", "start my day", "morning", "what should I do", "stuck", "focus", "prioritize", "tired", "low energy" | [modes/coach.md](modes/coach.md) |
 | "overwhelmed", "system is a mess", "need to reset", "cleanup" | [modes/health.md](modes/health.md) → Recovery |
-| "waiting on", "who owes me", "follow up" | Waiting check (inline) |
-| "capture [X]", "add [X]", "remember [X]", "quick add" | Quick capture (inline) |
+| "waiting on", "who owes me", "follow up" | [modes/waiting.md](modes/waiting.md) |
+| "capture [X]", "add [X]", "remember [X]", "quick add" | [modes/capture.md](modes/capture.md) |
+| "undo", "undo that", "reverse that" | State → `reminders.sh undo` |
 
 **Ambiguous intent:** When unclear, check inbox count. If inbox > 5, suggest processing. Otherwise ask: "Process inbox, plan your day, or something else?"
 
-## Quick Capture
+## State
 
-When user says "capture", "add", "remember to", or similar with a task:
+Process, Coach, and Review record one session outcome at close through `.claude/skills/gtd/scripts/state.sh`. Start with `state.sh begin <mode>`, keep the printed ID, and pass it to `session` or `review`. The same ID makes retries idempotent. Missing values stay unknown.
 
-```bash
-.claude/skills/gtd/scripts/reminders.sh add "[title]" Inbox
-```
-
-Respond: `Captured: [title]`
-
-**Multiple items:** Parse comma-separated, "and"-joined, or line-broken lists. Run one `add` per item, then confirm as batch:
-```
-Captured:
-• Call dentist
-• Buy groceries
-• Email Sarah re: project
-```
-
-**With context clues:** If the user says "remind me to call mom tomorrow", capture the title and add the due date:
-```bash
-.claude/skills/gtd/scripts/reminders.sh add-natural "call mom" Inbox "tomorrow"
-```
-
-## Waiting Check
-
-When user asks about waiting items:
-
-```bash
-.claude/skills/gtd/scripts/reminders.sh waiting-age
-```
-
-Show items with who and age. Flag overdue ones:
-```
-Waiting on:
-• 'API access' — Sarah — 3 days
-• 'Budget approval' — Mike — 12 days ⚠️
-
-Nudge Mike? (y/n)
-```
-
-Items > 7 days get the ⚠️ and a nudge suggestion. If user says yes, add "Follow up with [person] re: [item]" to Next Actions.
-
-## Response Rules
-
-**Position format:** Always show `N/total: 'Title'`
-
-**User responses** (keep it simple):
-- `now` / `later` / `someday` / `delete`
-- `1` / `2` / `3` (choices)
-- `done` / `stop` / `skip`
-- Context word: `home` / `office` / `errands` / `calls`
-
-**Flow:** After each action, immediately show next item. No pauses, no recaps mid-flow.
-
-**End:** Summary + "Anything else?"
-
-## Interruptions
-
-User says "stop", "pause", "wait" → save state, offer to resume later.
-
-## State (Automatic)
-
-State saves automatically via `.claude/skills/gtd/scripts/state.sh`. No manual update needed.
+To reverse the most recent Reminder decision, run `reminders.sh undo`. It restores every changed field, preserves later edits, and reports conflicts. Deletion is permanent.
 
 ## CLI Reference
 
@@ -110,11 +53,15 @@ See [reference/tools.md](reference/tools.md) — reminders, calendar, state, tag
 - Do the organizing, user makes decisions
 - Surface patterns, don't lecture
 - Brief warmth is fine: "Nice." or "Solid week." — not "Great job completing all those tasks!"
-- When showing data, let the data speak. Don't narrate what's obvious.
+- Let the data speak.
 
 ## Error Recovery
 
-If a script call fails:
-1. Retry once silently
-2. If still fails: "[App] not responding. Open it and try again?"
-Don't dump error traces. Keep it human.
+Reminder decisions return JSON with `status`, `retry_safe`, and `undo_available`.
+
+- `changed`, `unchanged`, `undone`, `empty` → success.
+- `failed` with `retry_safe: true` → retry once silently, then ask the user to open the app.
+- `partial` or `uncertain` → do not repeat. Report what changed and whether undo is available.
+- `conflict` → the reminder was left untouched because it was edited after the decision.
+
+If a Calendar query fails, continue with task counts and say availability is unknown. Report the outcome in one human sentence and skip error traces.

@@ -4,7 +4,10 @@
 
 ```bash
 .claude/skills/gtd/scripts/reminders.sh inbox
+.claude/skills/gtd/scripts/state.sh begin process
 ```
+
+Keep the printed session ID for this conversation. Reuse it if the session is interrupted and resumed.
 
 **Empty:** "Inbox clear." → end
 
@@ -15,7 +18,7 @@
 Actionable? (now/later/someday/delete)
 ```
 
-No preamble. No "Let's process your inbox!" Just the first item.
+Show the first item immediately.
 
 ## Per-Item Flow
 
@@ -45,7 +48,21 @@ When? (I'll set the due date)
 
 → "tuesday 2pm"
 ```
-Use `add-natural` for date parsing, move to Next Actions.
+Use `add-natural` for date parsing, then `process` to move it to Next Actions.
+
+## One Decision Per Item
+
+Write every disposition through the Reminder changes module:
+
+| Disposition | Command |
+|-------------|---------|
+| `now` | `reminders.sh now <id> [context] [energy] [duration]` |
+| `later` | `reminders.sh process <id> [context] [energy] [duration]` |
+| `delegate [person]` | `reminders.sh delegate <id> "[person]"` |
+| `someday` | `reminders.sh defer <id>` |
+| `delete` | `reminders.sh delete <id>` |
+
+Processing and flagging are one decision. Write each disposition with exactly one command. Command outcomes follow [Error Recovery](../SKILL.md#error-recovery).
 
 ## Response Mapping
 
@@ -65,18 +82,23 @@ Use `add-natural` for date parsing, move to Next Actions.
 
 **Delegate shortcut:** "delegate sarah" = move to Waiting For + @waiting: Sarah.
 
-## Error Handling
+## Response Rules
 
-If a script fails mid-session:
-1. Retry once
-2. If still fails: "Reminders not responding. Open the app and try again?"
-3. Don't lose track of position — remember where you were
+**Position:** Show `N/total: 'Title'` for the current item.
+
+**Flow:** After each decision, show the next item immediately. Save recaps for the end.
+
+**Interruptions:** On `stop`, `pause`, or `wait`, end the session at the current item. Record net outcomes, then offer to resume later.
 
 ## Session End
 
+When the session ends — including `stop`, `pause`, or an interruption — record net outcomes after subtracting any decision reversed during this session. Omit a value you do not know; do not invent zero.
+
 ```bash
-.claude/skills/gtd/scripts/state.sh session process <count>
+.claude/skills/gtd/scripts/state.sh session process <processed> --id <session-id> --deferred <deferred>
 ```
+
+Add `--contexts '{"home":2,"office":1}'` only when contexts were assigned. Repeating the same call with the same ID is safe.
 
 ```
 Done. 5 processed:
