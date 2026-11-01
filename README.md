@@ -10,6 +10,7 @@ A Reminders-native Getting Things Done (GTD) workflow powered by Claude Code. Th
 - [System Architecture](#system-architecture)
 - [GTD Workflow](#gtd-workflow)
 - [Project Structure](#project-structure)
+- [Documentation](#documentation)
 - [Requirements](#requirements)
 - [Important Warning](#important-warning)
 - [Setup Guide](#setup-guide)
@@ -20,7 +21,7 @@ A Reminders-native Getting Things Done (GTD) workflow powered by Claude Code. Th
 
 ## Overview
 
-This is my personal implementation of David Allen's GTD methodology, designed around Apple Reminders with an intelligent Claude Code skill to orchestrate workflows. **While I use Apple Reminders, you can adapt this system to work with any todo list app** by modifying the shell scripts.
+This is my personal implementation of David Allen's GTD methodology, designed around Apple Reminders with an intelligent Claude Code skill to orchestrate workflows. The Skill handles routing and coaching; small Python decision modules own reminder changes, calendar availability, and dated tracking. **While I use Apple Reminders, you can adapt this system to work with any todo list app** by replacing the native adapters.
 
 The system focuses on:
 
@@ -37,6 +38,7 @@ The system focuses on:
 
 - **Apple Reminders native** — Uses standard Reminders lists (Inbox, Next Actions, Waiting For, Someday, Projects)
 - **Calendar integration** — macOS Calendar for appointment + task coordination
+- **Shared availability** — `free` and `gaps` use one calculation for time remaining today
 - **Context tags** — Location (@home, @office) and energy (#high, #low, #quick) in notes
 - **Dated history** — Tracks processing velocity, context usage, and completion snapshots for grounded suggestions
 - **Project health** — Detects orphan projects without next actions
@@ -51,7 +53,8 @@ The system focuses on:
 - **[Claude Code](https://claude.ai/code)** — AI-powered CLI with Skills support
 - **Apple Reminders** — Native macOS/iOS reminders app
 - **macOS Calendar** — Native calendar app
-- **yq** — YAML processor for robust state management
+- **Python 3** — Standard-library decision modules and interface tests
+- **yq v4** — YAML processor for robust state management
 - **AppleScript** — Shell scripts wrapping osascript for Reminders/Calendar access
 
 ## System Architecture
@@ -60,14 +63,18 @@ The system focuses on:
 graph TB
     subgraph "Claude Code Skill"
         SKILL[GTD Skill<br/>Workflow Orchestrator]
+        CAPTURE[Capture Mode<br/>Inbox Capture]
         PROCESS[Process Mode<br/>Inbox Processing]
         COACH[Coach Mode<br/>Context-Aware Selection]
         REVIEW[Review Mode<br/>Weekly + Project Health]
+        WAITING[Waiting Mode<br/>Follow-ups]
         HEALTH[Health Mode<br/>System Recovery]
 
+        SKILL --> CAPTURE
         SKILL --> PROCESS
         SKILL --> COACH
         SKILL --> REVIEW
+        SKILL --> WAITING
         SKILL --> HEALTH
     end
 
@@ -202,7 +209,7 @@ SCENARIOS.md                      # Common scenarios and recipes
 - **macOS Calendar** — Pre-installed on macOS
 - **Claude Code** — AI-powered CLI
 - **Python 3** — Standard library only (`python3 --version`)
-- **yq** — Portable command-line YAML processor (`brew install yq`)
+- **yq v4** — Mike Farah's command-line YAML processor (`brew install yq`)
 
 ## Important Warning
 
@@ -285,7 +292,7 @@ claude
 python3 -m unittest discover -s tests -v
 ```
 
-The tests use fake Reminders/Calendar adapters and temporary state files. They never touch your live data. Tracking tests require `yq`.
+The tests use fake Reminders/Calendar adapters and temporary state files. They never touch your live data. Tracking tests require `yq v4`; they skip when the Python `yq` wrapper is found instead.
 
 ## How to Use
 
@@ -294,6 +301,10 @@ The tests use fake Reminders/Calendar adapters and temporary state files. They n
 The GTD skill automatically routes based on intent:
 
 ```
+# Capture (→ Capture mode)
+capture call the dentist
+remember to email Sarah
+
 # Processing (→ Process mode)
 process inbox
 clear inbox
@@ -310,10 +321,18 @@ weekly review
 how am I doing
 review
 
+# Waiting (→ Waiting mode)
+waiting on
+who owes me
+
 # Recovery (→ Health mode)
 system is a mess
 need to reset
 cleanup
+
+# Undo (→ last Reminder decision)
+undo
+undo that
 ```
 
 ### Proactive AI Behavior
@@ -346,7 +365,7 @@ I have 15 minutes → suggests #quick tasks
 ### Morning (10 minutes)
 
 1. **"process inbox"** — Interactive inbox processing
-2. Answer: "Actionable? When?" → "y later" / "n delete" / "someday"
+2. Answer: "Actionable? (now/later/someday/delete)"
 3. Result: Inbox to zero, Next Actions ready
 
 ### Throughout Day
@@ -375,9 +394,11 @@ When system gets messy:
 
 ### For Different Todo Apps
 
-1. Replace `reminders.sh` with scripts for your app
-2. Update `reference/tools.md` with your commands
-3. Modify mode files for your app's terminology
+1. Replace the AppleScript queries in `reminders.sh` and the AppleScript adapter in `gtd_reminders.py`; keep decision and undo semantics in `ReminderChanges`
+2. Replace event retrieval in `gtd_calendar.py`; keep the shared availability calculation
+3. Update `reference/tools.md` and mode wording for your app
+
+The optional command adapters (`GTD_REMINDERS_ADAPTER`, `GTD_CALENDAR_ADAPTER`) are the seam used by tests and by non-AppleScript implementations.
 
 ### For Different Workflows
 
@@ -390,6 +411,13 @@ When system gets messy:
 Edit `state.yaml` to customize:
 - `processing_style`: quick | thorough
 - Health thresholds in `modes/health.md`
+
+## Documentation
+
+- [GLOSSARY.md](GLOSSARY.md) — domain terms used by the skill
+- [CLI reference](.claude/skills/gtd/reference/tools.md) — every Reminders, Calendar, and state command
+- [GTD skill](.claude/skills/gtd/SKILL.md) — routing, session handling, and error recovery
+- [tests/](tests/) — interface tests for reminder decisions, calendar availability, and tracking
 
 ## Privacy Note
 
