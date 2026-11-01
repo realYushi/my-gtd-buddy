@@ -1,6 +1,6 @@
 ---
 name: gtd
-description: GTD mentor for inbox processing, daily planning and focus coaching, weekly review, quick capture, waiting checks, reminder undo, and system recovery. Use whenever the user mentions tasks, reminders, inbox, planning, focus, overwhelm, productivity, or asks what to do next.
+description: GTD mentor for inbox processing, planning and focus, weekly review, capture, waiting checks, reminder undo, and recovery. Use when the user mentions tasks, reminders, inbox, planning, focus, overwhelm, or asks what to do next.
 user-invocable: true
 ---
 
@@ -19,9 +19,11 @@ Chatbot interface. You do the cognitive heavy lifting. User makes decisions in A
 Run silently, then pick ONE opener:
 
 1. **First-time user** (all counts zero, no prior session): "First session. What do you need — process inbox, plan your day, or just capture something?"
-2. **Critical health** (inbox 16+, stale 11+, review 15+ days): State the worst metric, offer to fix it: "Inbox has 23 items. Clear now?"
+2. **Critical health**: Read [Health Thresholds](modes/health.md#health-thresholds); state the worst critical metric and offer the matching action.
 3. **Returning after gap** (3+ days since last session): "Back after [N] days. [one-line status]." Then wait.
 4. **Healthy**: Wait silently for user intent.
+
+Session start completes when one opener is chosen.
 
 ## Routing
 
@@ -33,19 +35,19 @@ Run silently, then pick ONE opener:
 | "overwhelmed", "system is a mess", "need to reset", "cleanup" | [modes/health.md](modes/health.md) → Recovery |
 | "waiting on", "who owes me", "follow up" | [modes/waiting.md](modes/waiting.md) |
 | "capture [X]", "add [X]", "remember [X]", "quick add" | [modes/capture.md](modes/capture.md) |
-| "undo", "undo that", "reverse that" | State → `reminders.sh undo` |
+| "undo", "undo that", "reverse that" | Active process → Session outcome; otherwise `reminders.sh undo` |
 
 **Ambiguous intent:** When unclear, check inbox count. If inbox > 5, suggest processing. Otherwise ask: "Process inbox, plan your day, or something else?"
 
 ## State
 
-Process, Coach, and Review record one session outcome at close through `.claude/skills/gtd/scripts/state.sh`. Start with `state.sh begin <mode>`, keep the printed ID, and pass it to `session` or `review`. The same ID makes retries idempotent. Missing values stay unknown.
+Process records its Session outcome through `.claude/skills/gtd/scripts/outcomes.sh`. Begin returns a ticket; every disposition and close uses it. Coach and Review continue through `state.sh` with their existing IDs. Missing values stay unknown.
 
-To reverse the most recent Reminder decision, run `reminders.sh undo`. It restores every changed field, preserves later edits, and reports conflicts. Deletion is permanent.
+Undo during processing uses the ticket reply. Outside processing, `reminders.sh undo` reverses the latest reminder decision. Undo restores changed fields, preserves later edits, and reports conflicts. Deletion is permanent.
 
 ## CLI Reference
 
-See [reference/tools.md](reference/tools.md) — reminders, calendar, state, tags.
+Before calling a CLI command, read its section in [reference/tools.md](reference/tools.md).
 
 ## Style
 
@@ -57,11 +59,11 @@ See [reference/tools.md](reference/tools.md) — reminders, calendar, state, tag
 
 ## Error Recovery
 
-Reminder decisions return JSON with `status`, `retry_safe`, and `undo_available`.
+Reminder decisions return JSON with `status`, `retry_safe`, and `undo_available`. Session outcome replies return a durable ticket, decision observations, and an optional `issue`.
 
 - `changed`, `unchanged`, `undone`, `empty` → success.
 - `failed` with `retry_safe: true` → retry once silently, then ask the user to open the app.
-- `partial` or `uncertain` → do not repeat. Report what changed and whether undo is available.
+- `partial`, `uncertain`, or an outcome `unknown` → do not repeat. Report what changed and whether Undo is available.
 - `conflict` → the reminder was left untouched because it was edited after the decision.
 
 If a Calendar query fails, continue with task counts and say availability is unknown. Report the outcome in one human sentence and skip error traces.

@@ -4,34 +4,43 @@
 
 ```bash
 .claude/skills/gtd/scripts/reminders.sh inbox
-.claude/skills/gtd/scripts/state.sh begin process
+.claude/skills/gtd/scripts/outcomes.sh begin
 ```
 
-Keep the printed session ID for this conversation. Reuse it if the session is interrupted and resumed.
+Start completes when you hold `session_id` and its `ticket`. Calling `begin` again resumes the active session.
 
-**Empty:** "Inbox clear." → end
+**Empty:** close, say "Inbox clear," and end.
 
-**Has items:** Jump straight in. Show count in first item:
+**Has items:** show the first item immediately.
 
-```
-1/5: 'Call dentist'
-Actionable? (now/later/someday/delete)
-```
-
-Show the first item immediately.
-
-## Per-Item Flow
-
-**Simple items:**
 ```
 1/5: 'Call dentist'
 Actionable? (now/later/someday/delete)
-
-→ "later"
 ```
-Move it, show next item immediately.
 
-**Looks like a project** (multi-step, vague, or big):
+## One Decision Per Item
+
+Send each disposition through the durable ticket:
+
+```bash
+.claude/skills/gtd/scripts/outcomes.sh answer "$TICKET" \
+  '{"type":"dispose","reminder_id":"<id>","disposition":"later","context":"home"}'
+```
+
+| User says | `disposition` | Extra field |
+|-----------|---------------|-------------|
+| `now` | `now` | context, energy, duration |
+| `later` | `later` | context, energy, duration |
+| `delegate Sarah` | `delegate` | `"person":"Sarah"` |
+| `someday` | `someday` | — |
+| `delete` | `delete` | — |
+
+A context word beside `now` or `later` adds that tag. Include `energy` and `duration` only when the user gives them.
+
+The decision is complete when `answer` returns a new `ticket` and an observation of `confirmed`, `not_applied`, or `unknown`. Use the new ticket for the next item. `skip` sends no reply; show the next item.
+
+**Project clue** (multi-step, vague, or big):
+
 ```
 2/5: 'Plan vacation'
 Sounds like a project. What's ONE next action?
@@ -41,64 +50,49 @@ Sounds like a project. What's ONE next action?
 Got it. Keep 'Plan vacation' in Projects? (y/n)
 ```
 
-**Has a due date or time clue** ("dentist appointment Tuesday"):
+A project disposition is complete when one next action exists in Next Actions and the project item is retained in Projects or the user chooses another outcome.
+
+**Date clue:**
+
 ```
 3/5: 'Dentist appointment Tuesday'
 When? (I'll set the due date)
 
 → "tuesday 2pm"
 ```
-Use `add-natural` for date parsing, then `process` to move it to Next Actions.
 
-## One Decision Per Item
+Set the date with `reminders.sh add-natural`, then send the disposition through `outcomes.sh`.
 
-Write every disposition through the Reminder changes module:
+## Undo
 
-| Disposition | Command |
-|-------------|---------|
-| `now` | `reminders.sh now <id> [context] [energy] [duration]` |
-| `later` | `reminders.sh process <id> [context] [energy] [duration]` |
-| `delegate [person]` | `reminders.sh delegate <id> "[person]"` |
-| `someday` | `reminders.sh defer <id>` |
-| `delete` | `reminders.sh delete <id>` |
+```bash
+.claude/skills/gtd/scripts/outcomes.sh answer "$TICKET" \
+  '{"type":"undo","decision_id":"<decision-id>"}'
+```
 
-Processing and flagging are one decision. Write each disposition with exactly one command. Command outcomes follow [Error Recovery](../SKILL.md#error-recovery).
+Undo is complete when the reminder is restored and the decision reads `reversed`, or when you report a conflict. Only the latest eligible decision can be reversed. Before close, Undo subtracts its contribution.
 
-## Response Mapping
+Once the session is closed, `reminders.sh undo` restores the reminder; the recorded Session outcome stays unchanged.
 
-| User Says | Action |
-|-----------|--------|
-| `now` | → Next Actions (flagged for today) |
-| `later` | → Next Actions |
-| `later home` | → Next Actions with @home tag |
-| `someday` | → Someday |
-| `delete` | Delete |
-| `skip` | Next item |
-| `stop` | End session |
-| `home` / `office` / `errands` / `calls` | → Next Actions with @context tag |
-| `delegate [person]` | → Waiting For with @waiting: [person] |
+## Unknown Result
 
-**Context shortcut:** Any context word combined with a disposition adds the tag. "later office" = move to Next Actions + @office tag.
+When an answer returns an `issue` or an `unknown` observation, observe once:
 
-**Delegate shortcut:** "delegate sarah" = move to Waiting For + @waiting: Sarah.
+```bash
+.claude/skills/gtd/scripts/outcomes.sh answer "$TICKET" '{"type":"observe"}'
+```
 
-## Response Rules
-
-**Position:** Show `N/total: 'Title'` for the current item.
-
-**Flow:** After each decision, show the next item immediately. Save recaps for the end.
-
-**Interruptions:** On `stop`, `pause`, or `wait`, end the session at the current item. Record net outcomes, then offer to resume later.
+Then report the result. If it remains unknown, close as incomplete.
 
 ## Session End
 
-When the session ends — including `stop`, `pause`, or an interruption — record net outcomes after subtracting any decision reversed during this session. Omit a value you do not know; do not invent zero.
+`stop`, `pause`, `wait`, or an empty Inbox end here.
 
 ```bash
-.claude/skills/gtd/scripts/state.sh session process <processed> --id <session-id> --deferred <deferred>
+.claude/skills/gtd/scripts/outcomes.sh answer "$TICKET" '{"type":"close"}'
 ```
 
-Add `--contexts '{"home":2,"office":1}'` only when contexts were assigned. Repeating the same call with the same ID is safe.
+Session end is complete when `close` returns an outcome. The module owns processed, deferred, and context totals; missing values stay omitted and unresolved decisions make the outcome incomplete.
 
 ```
 Done. 5 processed:

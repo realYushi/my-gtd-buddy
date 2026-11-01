@@ -11,9 +11,12 @@ Task backend:
 - update container and fields
 - complete an item
 
+The Projects tool is optional. Without it, project review uses the list tool restricted to the Projects container and degrades explicitly when that is insufficient.
+
 Calendar backend:
 
 - list events in a window
+- an explicit IANA timezone in the profile
 
 ## Optional
 
@@ -35,7 +38,7 @@ Calendar backend:
 | undo | Confirm before destructive changes; state that undo is unavailable |
 | completed query | Ask for the recent completion count; label it as user-reported |
 | modified date | Ask which items feel stale; do not invent ages |
-| free/busy | Ask for available time or skip time-aware coaching |
+| free/busy | Use complete event data; if unavailable, ask for available time |
 | labels | Keep tags in the backend's supported field; if none, state the limitation |
 | project links | Ask the user to confirm each project's next action |
 | batch tools | Process item by item |

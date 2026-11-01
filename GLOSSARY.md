@@ -21,10 +21,10 @@ Time remaining today within the 9 AM–6 PM workday that is not occupied by time
 _Avoid_: Free time today (when referring to the entire workday)
 
 **Session outcome**:
-The facts recorded about work performed during a GTD session, including processed items, deferred items, and context usage where known. A decision reversed before the session closes does not contribute to that session's totals.
+The facts recorded about work performed during a GTD session, including processed items, deferred items, and context usage where known. A decision reversed before the session closes does not contribute to that session's totals. An Undo after the session closes does not change its recorded outcome.
 
 **Processed item**:
-An Inbox item given a disposition during a session, including moving it to Next Actions, Waiting For, or Someday, or deleting it. Skipped items and new captures are not processed items.
+An Inbox item whose defining disposition change was observed during a session, including moving it to Next Actions, Waiting For, or Someday, or confirming its deletion. Optional tag or flag failures do not change whether the item was processed. Skipped items and new captures are not processed items.
 
 **Deferred item**:
 An item moved to Someday. Deferring an Inbox item contributes to both the processed and deferred counts.

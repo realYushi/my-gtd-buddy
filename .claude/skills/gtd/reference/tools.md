@@ -124,6 +124,28 @@ Date/time format: `YYYY-MM-DD HH:MM`
 
 ---
 
+## Session Outcome
+
+Script: `.claude/skills/gtd/scripts/outcomes.sh`
+
+| Command | Description |
+|---------|-------------|
+| `begin [process]` | Create or resume the durable processing session |
+| `answer <ticket> '<reply>'` | Apply one disposition, Undo, observation, or close |
+
+The begin output contains `session_id`, `ticket`, and the current decisions. Keep the newest ticket for the next call. Reply shapes:
+
+```json
+{"type":"dispose","reminder_id":"...","disposition":"later","context":"home"}
+{"type":"undo","decision_id":"..."}
+{"type":"observe"}
+{"type":"close"}
+```
+
+The module performs the reminder decision, persists pending intent before mutation, observes the result, and derives Session outcome totals. Missing observations stay unknown. Repeating the same ticket and reply is idempotent. The ledger is local recovery state, not a task database.
+
+---
+
 ## State
 
 Script: `.claude/skills/gtd/scripts/state.sh`
@@ -141,6 +163,8 @@ Script: `.claude/skills/gtd/scripts/state.sh`
 | `trends` | Dated weeks, completion snapshots, and velocity |
 
 Retain the ID from `begin`. Repeating a `session` or `review` call with the same ID and payload is a no-op; reusing it with different values is an error. Omit unknown counts. `processed` counts Inbox dispositions; `deferred` counts Inbox items moved to Someday. Same-session undo is subtracted before recording. Coach sessions do not affect processing velocity.
+
+Process workflows use the Session Outcome interface above. The raw `session process` command remains for compatibility and existing state.
 
 ### Legacy compatibility
 

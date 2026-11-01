@@ -53,15 +53,7 @@ Then: "Done. [N] items moved to Someday. Inbox next? (y/n)"
 Stale items moved to Someday are not processed Inbox items. Do not add them to processing totals.
 
 **Option 2 — Blitz:**
-Start a process session and keep its ID:
-```bash
-.claude/skills/gtd/scripts/state.sh begin process
-```
-Use inbox processing flow but faster — just "keep/dump" for each:
-```
-1/[N]: '[item]' — keep or dump?
-```
-Keep only keep/dump decisions. Speed is the point. At the end, record net processed and deferred outcomes with `state.sh session process <processed> --id <session-id> --deferred <deferred>`. Omit unknown counts.
+Read [Inbox Processing](process.md) and follow its ticket protocol. Treat `keep` as `later` and `dump` as `delete`. Close when every item has a result or the user stops.
 
 **Option 3 — Focus 3:**
 ```bash

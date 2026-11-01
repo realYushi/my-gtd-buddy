@@ -26,7 +26,8 @@ v2/skills/gtd/
 │   ├── todoist-google.example.json
 │   └── manual.example.json
 └── scripts/
-    └── validate_profile.py
+    ├── validate_profile.py
+    └── gtd_availability.py
 ```
 
 ## Install
@@ -45,7 +46,7 @@ The profile is per-user configuration. It is gitignored and contains no credenti
 python3 -m unittest discover -s v2/tests -v
 ```
 
-The tests validate profile structure and documentation links. They do not contact task or calendar services.
+The tests validate profile rules and Available Time behavior. They do not contact task or calendar services.
 
 ## Boundaries
 

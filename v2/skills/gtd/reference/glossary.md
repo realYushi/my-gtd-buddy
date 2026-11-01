@@ -25,7 +25,10 @@ A possible commitment that is not active now.
 The reflection pass over wins, stuck items, projects, waiting items, and uncaptured commitments.
 
 **Available Time**:
-The remainder of the workday that is not occupied by calendar events. Overlapping events occupy their shared time once.
+The remainder of the workday that is not occupied by calendar events. Overlapping events occupy their shared time once. All-day events do not occupy Available Time.
+
+**Workday**:
+The configured span of local working hours, interpreted in the Backend Profile's timezone, within which Available Time is calculated.
 
 **Completion Snapshot**:
 A count of items completed during a stated window, usually the last seven days. Snapshots are observations, not additive totals.
@@ -34,4 +37,4 @@ A count of items completed during a stated window, usually the last seven days. 
 A per-user mapping from GTD concepts to a selected task manager and calendar, stored outside the skill.
 
 **Manual Mode**:
-The user performs changes in their own apps while the agent coaches and confirms the result.
+A backend whose changes the user performs in their own app while the agent coaches and confirms the result. Mode applies per backend: a manual task backend may be paired with an mcp calendar.

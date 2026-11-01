@@ -49,6 +49,8 @@ macos-calendar-mcp/
 .claude/skills/gtd/state.yaml.lock
 .claude/skills/gtd/.undo_stack
 .claude/skills/gtd/.undo_stack.lock
+.claude/skills/gtd/.processing-outcomes.json
+.claude/skills/gtd/.processing-outcomes.json.lock
 
 # Python bytecode
 __pycache__/

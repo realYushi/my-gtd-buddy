@@ -27,7 +27,7 @@ If the profile is missing, unreadable, or invalid, route to [setup](modes/setup.
    - Critical health: name the worst metric and offer to fix it.
    - Healthy: wait for the user's intent.
 
-Use [health thresholds](modes/health.md) for the numbers.
+Use [health thresholds](modes/health.md) for the numbers. Session start completes when one opener is chosen.
 
 ## Routing
 
@@ -50,6 +50,8 @@ Use [health thresholds](modes/health.md) for the numbers.
 - Confirm before delete or bulk change.
 - Read a write back before calling it complete, when the backend allows it.
 - Unknown values stay unknown. Never invent counts or history.
+- Use `scripts/gtd_availability.py` for Available Time; failed or incomplete observations stay unknown.
+- Manual Mode applies per backend; a manual task backend may use an automated calendar.
 - Use the backend's native undo only when the profile marks it available.
 - Without a completion query, do not claim a seven-day completion snapshot.
 - Without dated history, do not claim weekly processing trends.
@@ -64,10 +66,10 @@ Use [health thresholds](modes/health.md) for the numbers.
 
 ## Reference
 
-- [SOP](reference/sop.md)
-- [Glossary](reference/glossary.md)
-- [Backend capabilities](reference/capabilities.md)
-- [Profile format](reference/profile.md)
+- Before validating or repairing a profile, read [Profile format](reference/profile.md).
+- Before acting on a backend capability, read [Backend capabilities](reference/capabilities.md).
+- For workflow rules, read [SOP](reference/sop.md).
+- For term definitions, read [Glossary](reference/glossary.md).
 
 ## Style
 

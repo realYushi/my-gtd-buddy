@@ -87,6 +87,8 @@ graph TB
         CAVAIL[gtd_calendar.py<br/>availability]
         SSCRIPT[state.sh<br/>compatibility entry]
         STRACK[gtd_tracking.py<br/>dated outcomes]
+        OUTCOMES[outcomes.sh<br/>Session outcome + recovery]
+        ODECIDE[gtd_outcomes.py<br/>pending intent + accounting]
     end
 
     subgraph "Apple Reminders"
@@ -111,6 +113,7 @@ graph TB
     SKILL --> RSCRIPT
     SKILL --> CSCRIPT
     SKILL --> SSCRIPT
+    SKILL --> OUTCOMES
     RSCRIPT --> INBOX
     RSCRIPT --> NEXT
     RSCRIPT --> WAITING
@@ -121,6 +124,9 @@ graph TB
     CSCRIPT --> FREE
     CSCRIPT --> CAVAIL
     SSCRIPT --> STRACK
+    OUTCOMES --> ODECIDE
+    ODECIDE --> RDECIDE
+    ODECIDE --> STRACK
     STRACK --> TRENDS
     STRACK --> SNAPSHOTS
     STRACK --> VELOCITY
@@ -194,7 +200,9 @@ flowchart TD
         │   ├── calendar.sh       # Calendar queries + command entry point
         │   ├── gtd_calendar.py   # Shared availability calculation
         │   ├── state.sh          # State command entry point
-        │   └── gtd_tracking.py   # Dated outcomes through yq
+        │   ├── gtd_tracking.py   # Dated outcomes through yq
+        │   ├── outcomes.sh       # Durable processing Session outcome
+        │   └── gtd_outcomes.py   # Pending intent, accounting, recovery
         └── reference/
             └── tools.md          # Complete CLI reference
 
@@ -396,8 +404,8 @@ When system gets messy:
 
 ### For Different Todo Apps
 
-1. Replace the AppleScript queries in `reminders.sh` and the AppleScript adapter in `gtd_reminders.py`; keep decision and undo semantics in `ReminderChanges`
-2. Replace event retrieval in `gtd_calendar.py`; keep the shared availability calculation
+1. Replace the AppleScript queries in `reminders.sh` and the AppleScript adapter in `gtd_reminders.py`; keep decision and undo semantics in `ReminderChanges`. Keep Session outcome accounting in `gtd_outcomes.py`.
+2. Replace event retrieval in `gtd_calendar.py`; keep the shared availability calculation.
 3. Update `reference/tools.md` and mode wording for your app
 
 The optional command adapters (`GTD_REMINDERS_ADAPTER`, `GTD_CALENDAR_ADAPTER`) are the seam used by tests and by non-AppleScript implementations.

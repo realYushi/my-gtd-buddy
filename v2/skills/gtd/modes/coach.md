@@ -22,7 +22,25 @@ Offer at most three candidates. Prefer:
 
 ## Available Time
 
-Use the calendar's free/busy or event data. Available time means the remainder of the workday, with overlapping events counted once. If the calendar is unavailable, say availability is unknown.
+Use event data as sufficient; free/busy is an optional alternative.
+
+The calculation lives in `../scripts/gtd_availability.py`. Normalize the calendar result into timed intervals, include the query coverage window, and pass the profile's Workday and IANA timezone. The module returns exact seconds or an explicit unknown reason.
+
+```bash
+python3 scripts/gtd_availability.py <<'JSON'
+{
+  "now": "2026-11-02T14:00:00+13:00",
+  "workday": "09:00-18:00",
+  "timezone": "Pacific/Auckland",
+  "covering": ["2026-11-02T14:00:00+13:00", "2026-11-02T18:00:00+13:00"],
+  "busy": [["2026-11-02T15:00:00+13:00", "2026-11-02T16:00:00+13:00"]]
+}
+JSON
+```
+
+Use `"busy": null` when the calendar cannot supply complete data. The result is unknown, not zero. All-day events are excluded during normalization. If the helper cannot run or returns unknown, report availability as unknown or ask the user; the helper is the only source of a numeric total.
+
+Available Time is complete when the helper returns `known` or you report `unknown`.
 
 ## History
 

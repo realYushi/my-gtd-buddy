@@ -36,6 +36,69 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(profile["task"]["tools"], {})
         self.assertEqual(self.errors(profile), [])
 
+    def test_manual_mode_applies_per_backend(self):
+        profile = example("todoist-google.example.json")
+        profile["task"]["mode"] = "manual"
+        profile["task"]["tools"] = {}
+        profile["task"]["capabilities"]["completed_query"] = False
+        ready = validator.compile_profile(profile)
+        self.assertIsInstance(ready, validator.Ready)
+        self.assertIsInstance(ready.instructions["capture"], validator.AskUser)
+        self.assertIsInstance(ready.instructions["events"], validator.UseTool)
+
+    def test_manual_backend_rejects_tools(self):
+        task = example("manual.example.json")
+        task["task"]["tools"]["capture"] = "create_item"
+        self.assertTrue(any("task.tools" in error and "empty" in error for error in self.errors(task)))
+        calendar = example("manual.example.json")
+        calendar["calendar"]["tools"]["events"] = "list_events"
+        self.assertTrue(any("calendar.tools" in error and "empty" in error for error in self.errors(calendar)))
+
+    def test_mcp_calendar_requires_iana_timezone(self):
+        profile = copy.deepcopy(self.profile)
+        del profile["preferences"]["timezone"]
+        self.assertTrue(any("preferences.timezone" in error for error in self.errors(profile)))
+        profile["preferences"]["timezone"] = "Mars/Base"
+        self.assertTrue(any("preferences.timezone" in error for error in self.errors(profile)))
+
+    def test_same_clock_hour_workday_is_valid(self):
+        profile = copy.deepcopy(self.profile)
+        profile["calendar"]["workday"] = "09:15-09:45"
+        self.assertIsInstance(validator.compile_profile(profile), validator.Ready)
+
+    def test_equal_and_overnight_workdays_fail(self):
+        for workday in ("09:00-09:00", "22:00-06:00"):
+            profile = copy.deepcopy(self.profile)
+            profile["calendar"]["workday"] = workday
+            self.assertTrue(any("start must be before end" in error for error in self.errors(profile)))
+
+    def test_projects_tool_is_optional(self):
+        profile = copy.deepcopy(self.profile)
+        del profile["task"]["tools"]["projects"]
+        ready = validator.compile_profile(profile)
+        self.assertIsInstance(ready, validator.Ready)
+        self.assertIsInstance(ready.instructions["projects"], validator.UseTool)
+
+    def test_undo_requires_tool_in_mcp_mode(self):
+        profile = copy.deepcopy(self.profile)
+        profile["task"]["capabilities"]["undo"] = True
+        self.assertTrue(any("task.tools.undo" in error for error in self.errors(profile)))
+        profile["task"]["tools"]["undo"] = "undo_last_change"
+        self.assertIsInstance(validator.compile_profile(profile), validator.Ready)
+
+    def test_empty_label_lists_are_valid(self):
+        profile = copy.deepcopy(self.profile)
+        profile["task"]["labels"] = {"contexts": [], "energy": [], "duration": []}
+        self.assertEqual(self.errors(profile), [])
+
+    def test_compiled_instructions_resolve_degradation(self):
+        profile = copy.deepcopy(self.profile)
+        profile["task"]["capabilities"]["completed_query"] = False
+        del profile["task"]["tools"]["completed"]
+        ready = validator.compile_profile(profile)
+        self.assertIsInstance(ready, validator.Ready)
+        self.assertIsInstance(ready.instructions["completed"], validator.AskUser)
+
     def test_missing_container_fails(self):
         profile = copy.deepcopy(self.profile)
         del profile["task"]["containers"]["waiting"]
@@ -87,7 +150,9 @@ class ProfileTests(unittest.TestCase):
             path.write_text(json.dumps(self.profile))
             result = subprocess.run([str(VALIDATOR), str(path)], text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertEqual(json.loads(result.stdout)["status"], "valid")
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["status"], "valid")
+            self.assertIn("instructions", payload)
             path.write_text("{}")
             result = subprocess.run([str(VALIDATOR), str(path)], text=True, capture_output=True)
             self.assertEqual(result.returncode, 1)
