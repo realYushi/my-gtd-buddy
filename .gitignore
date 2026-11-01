@@ -54,3 +54,6 @@ macos-calendar-mcp/
 __pycache__/
 *.pyc
 .ace-tool/
+
+# Per-user GTD V2 backend profile
+.gtd/

@@ -34,6 +34,8 @@ The system focuses on:
 
 > **See It In Action**: Check out [A Day with My GTD System.md](A%20Day%20with%20My%20GTD%20System.md) — a complete walkthrough from morning to night showing how the system handles real interruptions, context switching, and maintains focus. Also see [SCENARIOS.md](SCENARIOS.md) for recipes for common situations like "Post-Vacation Reset" or "5-Minute Gap".
 
+> **V2 preview**: [v2/README.md](v2/README.md) contains a tool-neutral SOP skill with a setup mode and declarative backend profiles. It is not auto-loaded, so it does not replace this V1 skill until you install it.
+
 ## Key Features
 
 - **Apple Reminders native** — Uses standard Reminders lists (Inbox, Next Actions, Waiting For, Someday, Projects)
@@ -417,6 +419,7 @@ Edit `state.yaml` to customize:
 - [GLOSSARY.md](GLOSSARY.md) — domain terms used by the skill
 - [CLI reference](.claude/skills/gtd/reference/tools.md) — every Reminders, Calendar, and state command
 - [GTD skill](.claude/skills/gtd/SKILL.md) — routing, session handling, and error recovery
+- [V2 tool-neutral skill](v2/README.md) — SOP, setup mode, backend profiles, and profile validator
 - [tests/](tests/) — interface tests for reminder decisions, calendar availability, and tracking
 
 ## Privacy Note

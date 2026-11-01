@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "name": "manual",
+  "task": {
+    "provider": "user-managed",
+    "mode": "manual",
+    "containers": {
+      "inbox": "Inbox",
+      "next": "Next Actions",
+      "waiting": "Waiting For",
+      "someday": "Someday",
+      "projects": "Projects"
+    },
+    "labels": {
+      "contexts": ["@home", "@office", "@errands", "@calls"],
+      "energy": ["#high", "#low", "#quick"],
+      "duration": ["#5min", "#15min", "#30min", "#1hour", "#deep"]
+    },
+    "tools": {},
+    "capabilities": {
+      "undo": false,
+      "delete": true,
+      "completed_query": false,
+      "due_dates": true,
+      "labels": true,
+      "priority": true,
+      "modified_date": false,
+      "project_links": false,
+      "batch": false
+    }
+  },
+  "calendar": {
+    "provider": "user-managed",
+    "mode": "manual",
+    "tools": {},
+    "capabilities": {
+      "freebusy": false
+    },
+    "workday": "09:00-18:00"
+  },
+  "preferences": {
+    "processing_style": "quick"
+  }
+}
